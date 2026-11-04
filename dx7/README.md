@@ -10,12 +10,14 @@ The voices are original to sloopDX and licensed GPL-3.0-only by Sven Trogus
 | File | Content |
 |---|---|
 | `sloopdx-factory.syx` | DX7 32-voice bulk dump: the 20 synth voices, slots 21-32 INIT VOICE |
-| `sloopdx-dxkit-drums.syx` | The 17 "DX KIT" drum voices, slots 18-32 INIT VOICE - approximations only, see below |
-| `extract_sloopdx.py` | Regenerates both from `dx7_bank.h` |
+| `extract_sloopdx.py` | Regenerates it from `dx7_bank.h` |
 
-Both files are standard 4104-byte VMEM dumps (`F0 43 00 09 20 00 ... checksum F7`). The packing
+The sloopDX drum kits are left out: they depend on noise operators, pitch sweeps and multi-hit
+bursts that DX7 voice data cannot express.
+
+The file is a standard 4104-byte VMEM dumps (`F0 43 00 09 20 00 ... checksum F7`). The packing
 mirrors the firmware's `dx_pack()`; a round trip through a Python mirror of its `dx_unpack()`
-reproduces every one of the 155 voice parameters of every voice.
+reproduces all 155 parameters of every voice.
 
 ## Why a bare .syx does not sound like sloopDX
 
@@ -68,18 +70,24 @@ function parameter, not voice data, so a bulk dump cannot hold it.
 On Dexed or a DX7, use one shared chorus/delay/reverb on aux sends and set each part's sends from the
 table, scaled to 0-100 %.
 
-## Drum kit: approximations
+## Loading in Dexed
 
-The drum voices rely on features outside DX7 voice data, applied by
-[`drums.c`](https://github.com/zvenson/dxsloop/blob/8c1035b79d860edcb6f23556910206332669dac8/firmware/src/drums.c):
+The voices load as-is (Dexed: cartridge load, `sloopdx-factory.syx`). To match sloopDX:
 
-- **noise operators**: SNARE (OP6), CLAP (OP4, OP6), the hats, CRASH, SHAKER replace a sine with
-  sample-and-hold noise; a DX7 plays a sine there, so these sound tonal and metallic;
-- **pitch sweep** at the hit (e.g. KICK 808: 20 semitones over 28 ms) and **multi-hit bursts**
-  (CLAP: 4 hits, 11 ms apart);
-- fixed **trigger notes** (KICK 808 on MIDI 31, KICK PUNCH 33, SNARE 54, TOM LOW 43, TOM HIGH 50, CONGA 62, most others 60) and hat choke groups.
+1. **Engine: set Dexed's engine to "Modern"** (the msfa core). Dexed starts in "Mark I"
+   ([PluginProcessor.cpp L110](https://github.com/asb2m10/dexed/blob/fea2f0f0f2c397799f59b27eb11c038cd34b22c5/source/PluginProcessor.cpp#L110)),
+   a different operator core; sloopDX's own reference test compares its port against msfa's
+   `FmCore`, i.e. Modern
+   ([dx7_exact_test.cc](https://github.com/zvenson/dxsloop/blob/8c1035b79d860edcb6f23556910206332669dac8/tests/dx7_exact_test.cc)).
+2. **MONO** on for the voices marked mono in the table.
+3. **Level**: apply the trim with the channel fader (or Dexed's OUTPUT), relative to the others.
+4. **Filter**: leave Dexed's cutoff fully open and resonance at 0 (sloopDX: CUT 127, RESO 0).
+5. **Effects**: Dexed has none built in. Put a chorus, a 1/8 tempo delay and a ~1.5 s reverb on
+   DAW aux sends and set each instance's sends from the table.
 
-The kicks, toms, conga, cowbell and clave are usable; anything with noise is not faithful.
+Residual, minor differences: sloopDX runs one LFO per note, Dexed one per instance (only audible on
+the voices with LFO modulation: BRASS, STRINGS, GLASS PAD, ORGAN, FLUTE, SAW LEAD, mostly in
+chords); sloopDX clears the feedback history at note-on and adds a ~10 Hz DC blocker.
 
 ## Regenerating
 

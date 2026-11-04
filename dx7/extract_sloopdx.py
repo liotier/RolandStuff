@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Extract the sloopDX factory DX7 voices (github.com/zvenson/dxsloop, GPL-3.0-only)
-from firmware/src/dx7_bank.h into DX7 32-voice bulk dumps (.syx, 4104 bytes).
+from firmware/src/dx7_bank.h into a DX7 32-voice bulk dump (.syx, 4104 bytes).
 
     python3 extract_sloopdx.py path/to/dxsloop/firmware/src/dx7_bank.h [outdir]
 
@@ -53,14 +53,12 @@ def bulk(voices, init):
 def main(hdr, outdir="."):
     src = Path(hdr).read_text()
     synth = arrays(src, "DX_SYNTH[DX_NSYNTH][156]")
-    drums = arrays(src, "DX_DRUM_VOICE[DX_NDRUM][156]")
     init = dict(synth)["INIT VOICE"]
     out = Path(outdir)
-    for fn, vs in (("sloopdx-factory.syx", synth), ("sloopdx-dxkit-drums.syx", drums)):
-        s = bulk([v for _, v in vs], init)
-        assert len(s) == 4104
-        (out / fn).write_bytes(s)
-        print(f"{fn}: {len(vs)} voices ({', '.join(n for n, _ in vs)})")
+    s = bulk([v for _, v in synth], init)
+    assert len(s) == 4104
+    (out / "sloopdx-factory.syx").write_bytes(s)
+    print(f"sloopdx-factory.syx: {len(synth)} voices ({', '.join(n for n, _ in synth)})")
 
 
 if __name__ == "__main__":
