@@ -77,19 +77,14 @@ It checks that every pattern holds its own sound, compares sounds 1-3 and 1-4
 with the values observed on the panel (121 / 79 and 128 / 144), and reports
 whether choosing a sound also reset `ENV` and `ATTACK`.
 
-There is no MIDI shortcut: a Program Change on the note channel does not
-select a sound (tested on a v1.02 unit). An experimental shortcut through
-restore exists:
+There is no shortcut; both were tested on a v1.02 unit:
 
-```bash
-python3 j6prm.py generate --template ORIGINAL/BACKUP/J6_PTN59.PRM --omit FILTER,RESONANCE --out passes/harvest
-```
-
-The files set each pattern's sound but leave out its cutoff and resonance.
-Restore them, back up, and run `defaults` on that backup. It is valid only if
-the reference check says OK, which happens only if the J-6 fills missing values
-with the sound's defaults. If it fails, restore your original backup before
-harvesting by hand, because every pattern then already holds its own sound.
+- A Program Change on the note channel does not select a sound.
+- Restoring files that name the sound but omit `FILTER` and `RESONANCE`
+  (`generate --omit FILTER,RESONANCE`) gives every pattern 85 / 24. The
+  restore routine starts from an initialised pattern and applies the lines
+  present; it does not load the sound's defaults. It does apply generated
+  files exactly as written, which the recording passes rely on.
 
 ### 2. Set the J-6's MIDI menu
 
