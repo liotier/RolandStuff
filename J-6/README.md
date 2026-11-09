@@ -16,7 +16,18 @@ it. Two sources remain:
 | `j6capture.py` | select each pattern by Program Change, play test notes, record the USB audio |
 
 Both need only Python 3.8 or later. `j6capture.py` runs on Linux and needs
-`arecord` (alsa-utils), plus `flac` if you want compressed takes.
+`arecord` and `aplaymidi` from alsa-utils, plus `flac` if you want compressed
+takes. On Debian:
+
+```bash
+sudo apt install alsa-utils flac
+```
+
+MIDI goes through the ALSA sequencer by default: the script writes a small MIDI
+file and plays it with `aplaymidi` to the client named `J-6`, and the kernel's
+sequencer queue does the timing. This works even when another program holds
+the J-6's raw MIDI port. `--midi raw` writes to the raw port instead, if it is
+free.
 
 ## Pattern files (J-6 system program 1.02)
 
@@ -62,8 +73,23 @@ already selected might not reload its defaults. Then back up and run:
 python3 j6prm.py defaults HARVEST/BACKUP --before ORIGINAL/BACKUP -o defaults.csv
 ```
 
-It checks that every pattern holds its own sound and reports whether choosing
-a sound also reset `ENV` and `ATTACK`.
+It checks that every pattern holds its own sound, compares sounds 1-3 and 1-4
+with the values observed on the panel (121 / 79 and 128 / 144), and reports
+whether choosing a sound also reset `ENV` and `ATTACK`.
+
+There is no MIDI shortcut: a Program Change on the note channel does not
+select a sound (tested on a v1.02 unit). An experimental shortcut through
+restore exists:
+
+```bash
+python3 j6prm.py generate --template ORIGINAL/BACKUP/J6_PTN59.PRM --omit FILTER,RESONANCE --out passes/harvest
+```
+
+The files set each pattern's sound but leave out its cutoff and resonance.
+Restore them, back up, and run `defaults` on that backup. It is valid only if
+the reference check says OK, which happens only if the J-6 fills missing values
+with the sound's defaults. If it fails, restore your original backup before
+harvesting by hand, because every pattern then already holds its own sound.
 
 ### 2. Set the J-6's MIDI menu
 
@@ -134,8 +160,14 @@ formats.
 
 ## Troubleshooting
 
-- **"Device or resource busy"**: the desktop sound server holds the J-6. Set
-  its card profile to off with `pactl` or pavucontrol while recording.
+- **arecord says "Device or resource busy"**: the desktop sound server holds
+  the J-6's audio. Set its card profile to off with `pactl` or pavucontrol
+  while recording.
+- **amidi says "Device or resource busy"**: a sequencer client is connected to
+  the J-6, for example a browser page using Web MIDI. `aconnect -l` hides some
+  clients; `cat /proc/asound/seq/clients` lists them all. The default
+  `--midi seq` route works regardless, but close any program that could send
+  MIDI to the J-6 while you record.
 - **Silent takes**: check the J-6's `CH` setting and that its volume is up.
 - **Every take sounds the same**: `rxPc` is off or `Pc.Ch` differs from
   `--pc-channel`.

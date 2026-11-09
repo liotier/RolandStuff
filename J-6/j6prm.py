@@ -32,6 +32,10 @@ NEUTRAL = {"ENV": 128, "ATTACK": 0}  # values found in freshly initialised patte
 # Values the J-6 writes when it initialises a pattern (menu "init"): no phrase
 # style, so notes arriving over MIDI are not shaped by STYLE / VARIATION.
 INIT_STYLE = {"STYLE": -1, "VARIATION": -1, "STYLE_SW": 0}
+# FILTER / RESONANCE observed on a v1.02 unit after choosing the sound on the
+# panel. Sound 1-1 (85 / 24) is left out: an initialised pattern holds the same
+# values, so it cannot tell a real harvest from untouched patterns.
+REFERENCE = {2: (121, 79), 3: (128, 144)}
 LINE = re.compile(r"^(?P<key>[A-Z_]+(?: \d+)?)\t= (?P<value>.*)$")
 
 
@@ -77,12 +81,12 @@ class Prm:
                     return False
         return True
 
-    def render(self, overrides: dict | None = None) -> bytes:
+    def render(self, overrides: dict | None = None, omit=()) -> bytes:
         overrides = overrides or {}
-        unknown = set(overrides) - set(self.values)
+        unknown = (set(overrides) | set(omit)) - set(self.values)
         if unknown:
             raise KeyError(f"{self.path}: no such keys {sorted(unknown)}")
-        lines = [f"{k}\t= {overrides.get(k, self.values[k])}" for k in self.keys]
+        lines = [f"{k}\t= {overrides.get(k, self.values[k])}" for k in self.keys if k not in omit]
         text = self.newline.join(lines) + (self.newline if self.final_newline else "")
         return text.encode("ascii")
 
@@ -106,7 +110,7 @@ def cmd_inspect(args) -> None:
     print(f"{'pattern':<8}{'sound':>6}" + "".join(f"{c[:9]:>10}" for c in cols) + "  bars")
     for i, p in enumerate(patterns):
         print(f"{label(i):<8}{label(p['SOUND']):>6}"
-              + "".join(f"{p.values[c]:>10}" for c in cols)
+              + "".join(f"{p.values.get(c, '-'):>10}" for c in cols)
               + ("  empty" if p.bars_empty() else "  notes"))
 
 
@@ -114,18 +118,29 @@ def cmd_defaults(args) -> None:
     after = load_backup(args.dir)
     rows, wrong = [], []
     for i, p in enumerate(after):
-        valid = p["SOUND"] == i
-        if not valid:
+        missing = [k for k in KNOBS if k not in p.values]
+        valid = p["SOUND"] == i and not missing
+        if missing:
+            wrong.append(f"pattern {label(i)} lacks {', '.join(missing)}")
+        elif not valid:
             wrong.append(f"pattern {label(i)} holds sound {label(p['SOUND'])}")
         rows.append({"sound": label(i), "sound_index": i,
-                     **{k: p[k] for k in KNOBS}, "valid": int(valid)})
+                     **{k: (p[k] if k in p.values else "") for k in KNOBS}, "valid": int(valid)})
     with open(args.output, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["sound", "sound_index", *KNOBS, "valid"])
         writer.writeheader()
         writer.writerows(rows)
     print(f"wrote {args.output}: defaults for {N - len(wrong)} of {N} sounds")
     for msg in wrong:
-        print(f"  not usable: {msg} instead of its own number")
+        print(f"  not usable: {msg}")
+    matches = []
+    for s, expected in REFERENCE.items():
+        found = (rows[s]["FILTER"], rows[s]["RESONANCE"])
+        matches.append(bool(rows[s]["valid"]) and found == expected)
+        print(f"reference sound {label(s)}: expected {expected[0]}/{expected[1]}, "
+              f"found {found[0]}/{found[1]} -> {'OK' if matches[-1] else 'MISMATCH'}")
+    if not all(matches):
+        print("the reference values do not match: these are not the J-6's defaults")
     for k in ("ENV", "ATTACK"):
         counts = Counter(r[k] for r in rows if r["valid"])
         print(f"{k} values found: " + ", ".join(f"{v} (x{n})" for v, n in sorted(counts.items())))
@@ -141,7 +156,8 @@ def cmd_defaults(args) -> None:
         for k in ("ENV", "ATTACK"):
             kept, changed = [], []
             for i, (b, a) in enumerate(zip(before, after)):
-                if a["SOUND"] != i or b["SOUND"] == i or b[k] == NEUTRAL[k]:
+                if (k not in a.values or k not in b.values or a["SOUND"] != i
+                        or b["SOUND"] == i or b[k] == NEUTRAL[k]):
                     continue
                 (kept if a[k] == b[k] else changed).append(f"{label(i)}: {b[k]}->{a[k]}")
             if not kept and not changed:
@@ -178,7 +194,10 @@ def cmd_generate(args) -> None:
     template = Prm(args.template)
     if not template.bars_empty():
         sys.exit(f"{args.template} has notes in its bars: use a freshly initialised pattern")
-    wants_default = [k for k in KNOBS if getattr(args, k.lower()) == "default"]
+    omit = tuple(k.strip().upper() for k in args.omit.split(",")) if args.omit else ()
+    if any(k not in KNOBS for k in omit):
+        sys.exit(f"--omit accepts only {', '.join(KNOBS)}")
+    wants_default = [k for k in KNOBS if k not in omit and getattr(args, k.lower()) == "default"]
     if wants_default and not args.defaults:
         sys.exit(f"'default' for {', '.join(wants_default)} needs --defaults "
                  "(a CSV written by the 'defaults' subcommand), or give numbers")
@@ -194,6 +213,8 @@ def cmd_generate(args) -> None:
     for i in range(N):
         values = {"SOUND": i, "DELAY": 0, "REVERB": 0, "TRANSPOSE": 0, **INIT_STYLE}
         for k in KNOBS:
+            if k in omit:
+                continue
             value = getattr(args, k.lower())
             if value == "default":
                 if i not in defaults:
@@ -205,12 +226,14 @@ def cmd_generate(args) -> None:
         if args.level is not None:
             values["LEVEL"] = args.level
         path = restore / f"J6_PTN{i + 1:02d}.PRM"
-        path.write_bytes(template.render(values))
+        path.write_bytes(template.render(values, omit))
         check = Prm(path)  # re-read: same keys in the same order, intended values
-        if check.keys != template.keys or any(check[k] != int(v) for k, v in values.items()):
+        if (check.keys != [k for k in template.keys if k not in omit]
+                or any(check[k] != int(v) for k, v in values.items())):
             sys.exit(f"{path}: verification failed")
         manifest.append({"pattern": label(i), "program_change": i, "sound": label(i),
-                         **{k: check[k] for k in (*KNOBS, "TEMPO", "LEVEL")}})
+                         **{k: (check[k] if k in check.values else "") for k in
+                            (*KNOBS, "TEMPO", "LEVEL")}})
 
     with open(out / "manifest.csv", "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(manifest[0]))
@@ -246,6 +269,8 @@ def main() -> None:
     p.add_argument("--attack", type=knob_value, default=0, help="0-255 or 'default' (0)")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
+    p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
+                   "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")
     p.set_defaults(func=cmd_generate)
 
     args = parser.parse_args()
