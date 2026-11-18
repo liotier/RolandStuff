@@ -103,6 +103,16 @@ There is no shortcut; both were tested on a v1.02 unit:
 `CH` 1 (notes), `Pc.Ch` 16 (Program Change), `rxPc` On. The script assumes
 these values; `--note-channel` and `--pc-channel` change them.
 
+Chord mode must be off ([CHORD] unlit). In chord mode, the J-6 treats each
+incoming MIDI note like a keyboard button: the pitch class selects the chord
+registered to that button and the octave shifts its voicing. On a factory-reset
+unit, A (MIDI 45, 57, 69) played F-A-C over A, and E (MIDI 52) played C-D-E-G
+over E.
+
+The J-6's USB audio runs only at 44.1 kHz (32-bit stereo on a v1.02 unit).
+The script reads the native rate from `hw_params.txt` and records at it, so
+that ALSA does not resample.
+
 ### 3. Generate and restore a pass
 
 ```bash

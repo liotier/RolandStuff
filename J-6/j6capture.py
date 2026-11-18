@@ -54,6 +54,7 @@ STIMULI = {
 }
 TAIL = {"full": 2.00, "short": 2.35}  # recorded after the last note-off
 PRE_ROLL = 0.8   # s between starting arecord and the first note (noise floor)
+NATIVE_RATE = 44100  # the J-6's only USB audio rate (S32_LE, stereo) on a v1.02 unit
 MARGIN = 0.5
 
 BUSY_HINT = (
@@ -286,7 +287,9 @@ def main() -> None:
     ap.add_argument("--velocity", type=int, default=100)
     ap.add_argument("--settle", type=float, default=1.0,
                     help="seconds to wait after the Program Change")
-    ap.add_argument("--rate", type=int, default=48000)
+    ap.add_argument("--rate", type=int,
+                    help="sample rate; default: the J-6's native rate (44100 on a v1.02 unit), "
+                    "read from its hardware parameters, to avoid ALSA's resampling")
     ap.add_argument("--format", default="S24_3LE")
     ap.add_argument("--channels", type=int, default=2)
     ap.add_argument("--flac", action="store_true", help="compress each take with flac")
@@ -302,6 +305,7 @@ def main() -> None:
     prm_dir = Path(args.prm_dir) if args.prm_dir else None
 
     if args.dry_run:
+        args.rate = args.rate or NATIVE_RATE
         where = (args.midi_port or f"sequencer client '{args.midi_client}'") if args.midi == "seq" \
             else (args.midi_device or "raw device of the card")
         print(f"{len(args.patterns)} take(s) of {seconds} s, audio from {audio_dev}, "
@@ -345,10 +349,16 @@ def main() -> None:
     hw = outdir / "hw_params.txt"
     if not hw.exists():
         p = subprocess.run(["arecord", "-D", f"hw:CARD={args.card},DEV=0", "--dump-hw-params",
-                            "-d", "1", "-f", args.format, "-r", str(args.rate),
-                            "-c", str(args.channels), "-t", "raw", "/dev/null"],
+                            "-d", "1", "-t", "raw", "/dev/null"],
                            capture_output=True, text=True, timeout=20)
         hw.write_text(p.stdout + p.stderr)
+    m = re.search(r"^RATE:\s*(\d+)\s*$", hw.read_text(), re.M)
+    native = int(m.group(1)) if m else None
+    if args.rate is None:
+        args.rate = native or NATIVE_RATE
+    elif native and args.rate != native:
+        print(f"warning: the J-6 runs at {native} Hz; recording at {args.rate} Hz makes ALSA "
+              "resample, which dulls high frequencies. Leave out --rate to avoid it.")
     p = subprocess.run(arecord_cmd(args, audio_dev, 1, "/dev/null", "raw"),
                        capture_output=True, text=True, timeout=20)
     if p.returncode != 0:
