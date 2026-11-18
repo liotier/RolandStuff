@@ -153,7 +153,9 @@ python3 j6capture.py --pass-name default --prm-dir passes/default/RESTORE --outd
 | `env000` | `--defaults defaults.csv --env 0` | `--stimulus short` | [ENVELOPE] at minimum |
 | `env255` | `--defaults defaults.csv --env 255` | `--stimulus short` | [ENVELOPE] at maximum |
 
-Each pass needs its own `generate`, restore and capture run. `j6passes.sh`
+Each pass needs its own `generate`, restore and capture run. Check that
+[CHORD] is unlit after every restore: chord mode can be on afterwards, and a
+pass recorded in chord mode is unusable for spectral analysis. `j6passes.sh`
 chains them: it generates the sets, then for each pass waits for the J-6 drive
 (backup mode), copies the files into `RESTORE`, unmounts, and records once you
 have pressed [CHORD] and switched the J-6 off and on. Run it from the folder

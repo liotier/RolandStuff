@@ -46,7 +46,10 @@ for p in "${PASSES[@]}"; do
   else
     read -r -p "unmount failed: eject the J-6 drive from the file manager, then press Enter "
   fi
-  read -r -p "press [CHORD], wait until the LEDs stop blinking, switch off and on normally, then press Enter "
+  echo "press [CHORD] to restore and wait until the LEDs stop blinking, then switch off and on normally."
+  echo "Chord mode can be on after a restore: make sure [CHORD] is unlit, otherwise every"
+  echo "test note plays a chord."
+  read -r -p "[CHORD] unlit? press Enter to record "
   until grep -q '\[J6 ' "$CARDS"; do sleep 1; done
   sleep 3  # let the MIDI and audio devices settle
   python3 "$HERE/j6capture.py" --pass-name "$p" --prm-dir "passes/$p/RESTORE" \
