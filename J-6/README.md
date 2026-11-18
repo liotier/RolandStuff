@@ -63,9 +63,19 @@ Keep the backup of your own patterns: every restore below overwrites all 64.
 
 ### 1. Harvest the defaults (once, by hand)
 
-In each pattern, choose the sound with the same number: pattern 1-1 gets
-sound 1-1, and so on through 8-8. Don't touch [FILTER] or [ENVELOPE], with or
-without SHIFT. Do this on your own patterns, before restoring any generated
+In each pattern, choose the sound with the same number, then save the pattern:
+pattern 1-1 gets sound 1-1, and so on through 8-8. The J-6 discards unsaved
+edits when you change pattern. Don't touch [FILTER] or [ENVELOPE], with or
+without SHIFT. With the J-6's menu `rxPc` On, this loop switches the patterns
+for you, so you only choose the sound and save:
+
+```bash
+S=1; for n in $(seq $S 64); do l="$(( (n-1)/8+1 ))-$(( (n-1)%8+1 ))"; amidi -p hw:4,0,0 -S "CF $(printf '%02X' $((n-1)))"; read -p "pattern $l: choose sound $l, SAVE the pattern, then press Enter "; done
+```
+
+`hw:4,0,0` is the J-6's raw MIDI port as `amidi -l` lists it. A factory reset
+leaves demo patterns in banks 1-2 and sound 1-1 in banks 3-8, so no pattern
+starts with its own sound. Do this on your own patterns, before restoring any generated
 set: those already hold sound n in pattern n, and choosing a sound that is
 already selected might not reload its defaults. Then back up and run:
 
