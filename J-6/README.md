@@ -103,9 +103,10 @@ There is no shortcut; both were tested on a v1.02 unit:
 `CH` 1 (notes), `Pc.Ch` 16 (Program Change), `rxPc` On. The script assumes
 these values; `--note-channel` and `--pc-channel` change them.
 
-Chord mode must be off ([CHORD] unlit). In chord mode, the J-6 treats each
-incoming MIDI note like a keyboard button: the pitch class selects the chord
-registered to that button and the octave shifts its voicing. On a factory-reset
+Chord mode must be off ([CHORD] unlit). With it off, incoming MIDI notes play
+single notes at their MIDI pitch (A2 measured at 110.02 Hz). In chord mode, the
+J-6 treats each incoming note like a keyboard button: the pitch class selects
+the chord registered to that button and the octave shifts its voicing. On a factory-reset
 unit, A (MIDI 45, 57, 69) played F-A-C over A, and E (MIDI 52) played C-D-E-G
 over E.
 

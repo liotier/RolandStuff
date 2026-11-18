@@ -33,7 +33,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = "1.1"
+VERSION = "1.2"
 
 # Test notes: (name, MIDI note, velocity or None for --velocity, note-on time s, gate s).
 # Roland numbering, C4 = 60: A2 = 45 (110 Hz), E3 = 52, A3 = 57, A4 = 69 (440 Hz).
