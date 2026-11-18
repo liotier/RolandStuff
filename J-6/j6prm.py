@@ -28,7 +28,9 @@ from pathlib import Path
 
 N = 64
 KNOBS = ("FILTER", "RESONANCE", "ENV", "ATTACK")
-NEUTRAL = {"ENV": 128, "ATTACK": 0}  # values found in freshly initialised patterns
+# Values in freshly initialised patterns. On a v1.02 unit, choosing a sound sets
+# ENV to 128 for every sound but loads a per-sound ATTACK (36 of 64 non-zero).
+NEUTRAL = {"ENV": 128, "ATTACK": 0}
 # Values the J-6 writes when it initialises a pattern (menu "init"): no phrase
 # style, so notes arriving over MIDI are not shaped by STYLE / VARIATION.
 INIT_STYLE = {"STYLE": -1, "VARIATION": -1, "STYLE_SW": 0}
@@ -265,8 +267,8 @@ def main() -> None:
     p.add_argument("--defaults", help="CSV from the 'defaults' subcommand")
     p.add_argument("--filter", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--resonance", type=knob_value, default="default", help="0-255 or 'default'")
-    p.add_argument("--env", type=knob_value, default=128, help="0-255 or 'default' (128)")
-    p.add_argument("--attack", type=knob_value, default=0, help="0-255 or 'default' (0)")
+    p.add_argument("--env", type=knob_value, default="default", help="0-255 or 'default'")
+    p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
     p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "

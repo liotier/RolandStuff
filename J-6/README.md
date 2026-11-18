@@ -52,10 +52,12 @@ into `RESTORE`, eject, press [CHORD] and wait until the LEDs stop blinking
 | `STYLE`, `VARIATION`, `STYLE_SW` | phrase settings, -1 / -1 / 0 in an initialised pattern |
 | `BAR n` | `NOTE1`-`NOTE4` (MIDI note or -1), style, chord and pad data per bar |
 
-Observed so far: choosing a sound writes its default `FILTER` and `RESONANCE`
-into the pattern. Sound 1-3 gave 121 / 79, sound 1-4 gave 128 / 144, and an
-initialised pattern (sound 1-1) holds 85 / 24. `ENV` stayed at 128 and
-`ATTACK` at 0.
+Observed on a v1.02 unit, by harvesting all 64 sounds from a factory-reset
+state: choosing a sound writes its own default `FILTER`, `RESONANCE` and
+`ATTACK` into the pattern. Sound 1-3 gives 121 / 79 / 0, sound 1-4 gives
+128 / 144 / 0, and 36 of the 64 sounds have a non-zero `ATTACK`. `ENV` is set
+to 128 for every sound, including in patterns that held another value, so
+[ENVELOPE] acts as a neutral-centred setting rather than a per-sound value.
 
 ## Procedure
 
@@ -104,12 +106,14 @@ these values; `--note-channel` and `--pc-channel` change them.
 ### 3. Generate and restore a pass
 
 ```bash
-python3 j6prm.py generate --template ORIGINAL/BACKUP/J6_PTN59.PRM --defaults defaults.csv --out passes/default
+python3 j6prm.py generate --template FACTORY/BACKUP/J6_PTN17.PRM --defaults defaults.csv --out passes/default
 ```
 
-The template can be any freshly initialised pattern of yours (empty bars).
-Pattern n gets sound n, delay and reverb levels are set to 0, and the phrase
-style is off. Copy `passes/default/RESTORE/*.PRM` into the J-6's `RESTORE`
+The template can be any pattern with empty bars: a blank factory pattern
+(banks 3-8 after a factory reset) or one you initialised. Pattern n gets
+sound n, with the harvested `FILTER`, `RESONANCE`, `ENV` and `ATTACK` unless
+an option overrides them; delay and reverb levels are set to 0, and the
+phrase style is off. Copy `passes/default/RESTORE/*.PRM` into the J-6's `RESTORE`
 folder, eject, press [CHORD], wait for the LEDs, switch off, then switch on
 normally.
 
@@ -133,7 +137,7 @@ python3 j6capture.py --pass-name default --prm-dir passes/default/RESTORE --outd
 | Pass | `j6prm.py generate` options | `j6capture.py` options | Purpose |
 |---|---|---|---|
 | `default` | `--defaults defaults.csv` | | each sound as selected |
-| `open` | `--filter 255 --resonance 0` | | oscillators, PWM, LFO, chorus without filtering |
+| `open` | `--defaults defaults.csv --filter 255 --resonance 0` | | oscillators, PWM, LFO, chorus without filtering |
 | `env000` | `--defaults defaults.csv --env 0` | `--stimulus short` | [ENVELOPE] at minimum |
 | `env255` | `--defaults defaults.csv --env 255` | `--stimulus short` | [ENVELOPE] at maximum |
 
