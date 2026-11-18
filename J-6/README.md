@@ -14,6 +14,7 @@ it. Two sources remain:
 |---|---|
 | `j6prm.py` | inspect backups, extract per-sound defaults, generate pattern sets for restore |
 | `j6capture.py` | select each pattern by Program Change, play test notes, record the USB audio |
+| `j6passes.sh` | generate, restore and record the remaining passes in one run |
 
 Both need only Python 3.8 or later. `j6capture.py` runs on Linux and needs
 `arecord` and `aplaymidi` from alsa-utils, plus `flac` if you want compressed
@@ -152,7 +153,18 @@ python3 j6capture.py --pass-name default --prm-dir passes/default/RESTORE --outd
 | `env000` | `--defaults defaults.csv --env 0` | `--stimulus short` | [ENVELOPE] at minimum |
 | `env255` | `--defaults defaults.csv --env 255` | `--stimulus short` | [ENVELOPE] at maximum |
 
-Each pass needs its own `generate`, restore and capture run.
+Each pass needs its own `generate`, restore and capture run. `j6passes.sh`
+chains them: it generates the sets, then for each pass waits for the J-6 drive
+(backup mode), copies the files into `RESTORE`, unmounts, and records once you
+have pressed [CHORD] and switched the J-6 off and on. Run it from the folder
+holding `Factory_backup/` and `Harvest_backup/`:
+
+```bash
+bash j6passes.sh
+```
+
+`J6_MOUNT` overrides the drive's mount point (default `/media/$USER/J-6`), and
+`J6_PATTERNS=1..3` limits a run to a few patterns.
 
 ### 6. Restore your own patterns
 
