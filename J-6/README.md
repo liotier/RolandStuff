@@ -16,6 +16,7 @@ it. Two sources remain:
 | `j6capture.py` | select each pattern by Program Change, play test notes, record the USB audio |
 | `j6passes.sh` | generate, restore and record the remaining passes in one run |
 | `j6analyze.py` | measure every sound from the recorded takes |
+| `j6compare.py` | set the measurements beside the reference spreadsheet in a workbook |
 
 Both need only Python 3.8 or later. `j6capture.py` runs on Linux and needs
 `arecord` and `aplaymidi` from alsa-utils, plus `flac` if you want compressed
@@ -167,7 +168,10 @@ bash j6passes.sh
 ```
 
 `J6_MOUNT` overrides the drive's mount point (default `/media/$USER/J-6`), and
-`J6_PATTERNS=1..3` limits a run to a few patterns.
+`J6_PATTERNS=1..3` limits a run to a few patterns. It knows the passes
+`default`, `open`, `env000` and `env255`; env255 waits 10 s between patterns,
+because a note rings for seconds at that setting and the J-6 ignores All
+Sound Off.
 
 ### 6. Restore your own patterns
 
@@ -209,6 +213,13 @@ python3 j6analyze.py captures -o measurements.csv
 `results/defaults.csv` holds the harvested defaults (`FILTER`, `RESONANCE`,
 `ENV`, `ATTACK` per sound), and `results/measurements.csv` the measurements
 from a factory-reset v1.02 unit. The script's header defines each column.
+
+`results/J6_sounds_measured.xlsx` sets the measurements beside the
+judgements of the reference spreadsheet, *Roland J-6 Preset Sounds Settings
+Ver. 1.0*, produced by Nick Standing at JabunAudio, quoted for comparison.
+Where both can be compared, chorus agrees on 56 of 56 sounds, glide on 60 of
+60, vibrato on 49 of 56 and filter LFO on 41 of 56. `j6compare.py` rebuilds
+the workbook from the CSV files and the reference spreadsheet.
 
 Findings that hold across the 64 sounds:
 

@@ -470,6 +470,23 @@ def audible_until(take: Take, gate: float, below=40):
     return float(t[low[0]]) if len(low) else gate
 
 
+def single_note(take: Take) -> bool:
+    """True when the A2 note's energy sits on one harmonic series, false for a
+    chord. The series' actual fundamental is found first (detuned sounds), then
+    energy within 0.8 % of its half-frequency grid (which holds a sub-oscillator
+    too) is compared with the total, 40 Hz - 2 kHz."""
+    freqs, mag = spectrum(take.seg(0.05, 0.45), take.sr, 1 << 18)
+    if freqs is None:
+        return False
+    cand = np.arange(103.0, 117.5, 0.05)
+    score = sum(np.interp(cand * k / 2, freqs, mag) for k in range(1, 33))
+    half = cand[int(np.argmax(score))] / 2
+    sel = (freqs > 40) & (freqs < 2000)
+    f, p = freqs[sel], mag[sel] ** 2
+    near = np.abs(((f / half) + 0.5) % 1 - 0.5) * half < np.maximum(0.008 * f, 3.0)
+    return p[near].sum() / max(p.sum(), EPS) > 0.7
+
+
 def analyse_sound(takes: dict, idx: int) -> dict:
     row = {"sound": label(idx)}
     d, o = takes.get("default"), takes.get("open")
@@ -510,8 +527,12 @@ def analyse_sound(takes: dict, idx: int) -> dict:
     # harmonics are present; filter LFO on the default pass, where the cutoff
     # sits where the preset has it (at full cutoff an LFO sweep is inaudible).
     tracks = {}
-    for name in ("open", "default"):
+    for name in ("open", "default", "env255"):
         tk = takes.get(name)
+        # env255 sustains the plucks; used only when the others are too short,
+        # and only if it was recorded with single notes (not in chord mode)
+        if name == "env255" and (tracks or not tk or not single_note(tk)):
+            continue
         if tk:
             ln = audible_until(tk, 6.0)
             if ln > 1.5:
@@ -520,7 +541,8 @@ def analyse_sound(takes: dict, idx: int) -> dict:
                 if tr is not None and len(tr) > 100:
                     tracks[name] = (tk, ln, tr)
     if tracks:
-        tk, ln, _ = tracks.get("open") or tracks.get("default")
+        tk, ln, _ = tracks.get("open") or tracks.get("default") or tracks.get("env255")
+        row["mod_pass"] = tk.meta["pass"]
         ch = chorus(tk, 0.3, min(ln, 5.95))
         row.update(ch)
         # The chorus's sweep shows in these tracks at its rate, half and twice it.
@@ -529,8 +551,9 @@ def analyse_sound(takes: dict, idx: int) -> dict:
         exclude = [v * m for v in rates for m in (0.5, 1, 2)]
         thresholds = {"vibrato": 6.0, "filter_lfo": 0.1, "pwm": 0.05}
         found = {}
-        for col, name, prefer in ((0, "vibrato", ("open", "default")), (1, "filter_lfo", ("default", "open")),
-                                  (2, "pwm", ("open", "default"))):
+        for col, name, prefer in ((0, "vibrato", ("open", "default", "env255")),
+                                  (1, "filter_lfo", ("default", "open", "env255")),
+                                  (2, "pwm", ("open", "default", "env255"))):
             pas = next((q for q in prefer if q in tracks), None)
             if pas:
                 res = lfo(tracks[pas][2], col, exclude)
@@ -543,7 +566,7 @@ def analyse_sound(takes: dict, idx: int) -> dict:
                 small = {"filter_lfo": 0.5, "vibrato": 25.0}[weaker]
                 if found[weaker][2] < small:
                     del found[weaker]
-        src = tracks.get("default") or tracks.get("open")
+        src = tracks.get("default") or tracks.get("open") or tracks.get("env255")
         bl, br = _clean(src[2][:, 0, 1]), _clean(src[2][:, 1, 1])
         if bl is not None and br is not None:
             mb = (bl + br) / 2
