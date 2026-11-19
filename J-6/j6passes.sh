@@ -7,10 +7,11 @@
 #   bash j6passes.sh                  # open, env000 and env255
 #   bash j6passes.sh default env255   # chosen passes: default, open, env000, env255,
 #                                     # tempo150 (defaults at 150 BPM, plus velocity
-#                                     # and polyphony tests), sweep (plans/sweep.csv)
+#                                     # and polyphony tests), sweep (knob sweeps)
 #
-# Run it from the folder holding Factory_backup/ and Harvest_backup/, or set
-# TEMPLATE and DEFAULTS. J6_MOUNT is where the desktop mounts the J-6 drive.
+# Run it from the experiment folder, which holds the four scripts,
+# Factory_backup/ and Harvest_backup/; it creates passes/ and captures/ there.
+# J6_MOUNT is where the desktop mounts the J-6 drive.
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -21,7 +22,7 @@ CARDS=${J6_CARDS:-/proc/asound/cards}
 PATTERNS=${J6_PATTERNS:-1..64}  # e.g. J6_PATTERNS=1..3 for a pilot
 
 declare -A GEN=([default]="" [open]="--filter 255 --resonance 0" [env000]="--env 0" [env255]="--env 255"
-                [tempo150]="--bpm 150" [sweep]="--plan $HERE/plans/sweep.csv")
+                [tempo150]="--bpm 150" [sweep]="--plan sweep")
 # Recordings after each restore: "name|patterns|stimulus|settle", into captures/name.
 # Settle is the pause between patterns: with [ENVELOPE] high a note rings for
 # seconds after its note-off, and the J-6 ignores All Sound Off.

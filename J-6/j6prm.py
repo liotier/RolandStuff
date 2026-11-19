@@ -192,6 +192,21 @@ def read_defaults(path) -> dict[int, dict[str, int]]:
     return table
 
 
+def sweep_plan() -> dict[int, dict]:
+    """Built-in plan 'sweep': 16 steps (0, 17 ... 255) each of FILTER on sound
+    6-8, RESONANCE on 2-7, ATTACK on 2-7 and ENV on 1-3, other knobs at the
+    sound's defaults."""
+    plan, n = {}, 1
+    for snd, knob in (("6-8", "FILTER"), ("2-7", "RESONANCE"), ("2-7", "ATTACK"), ("1-3", "ENV")):
+        for v in range(0, 256, 17):
+            plan[n] = {"sound": (int(snd[0]) - 1) * 8 + int(snd[2]) - 1, knob: v}
+            n += 1
+    return plan
+
+
+BUILTIN_PLANS = {"sweep": sweep_plan}
+
+
 def read_plan(path) -> dict[int, dict]:
     """Pattern plan: CSV with columns pattern (1-64 or a panel label), sound
     (panel label) and optionally FILTER, RESONANCE, ENV, ATTACK, BPM. Empty
@@ -225,7 +240,9 @@ def cmd_generate(args) -> None:
         sys.exit(f"'default' for {', '.join(wants_default)} needs --defaults "
                  "(a CSV written by the 'defaults' subcommand), or give numbers")
     defaults = read_defaults(args.defaults) if args.defaults else {}
-    plan = read_plan(args.plan) if args.plan else {}
+    plan = {}
+    if args.plan:
+        plan = BUILTIN_PLANS[args.plan]() if args.plan in BUILTIN_PLANS else read_plan(args.plan)
 
     out = Path(args.out)
     if out.exists() and any(out.iterdir()):
@@ -296,8 +313,8 @@ def main() -> None:
     p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
-    p.add_argument("--plan", help="CSV giving each pattern its sound and knob values "
-                   "(columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
+    p.add_argument("--plan", help="'sweep' (built in), or a CSV giving each pattern its sound "
+                   "and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
     p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
                    "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")
     p.set_defaults(func=cmd_generate)

@@ -64,6 +64,19 @@ to 128 for every sound, including in patterns that held another value, so
 
 ## Procedure
 
+Everything runs from one experiment folder holding the four scripts
+(`j6prm.py`, `j6capture.py`, `j6passes.sh`, `j6analyze.py`), your backups
+`Factory_backup/` and `Harvest_backup/` (with `defaults.csv`), and the
+`passes/` and `captures/` folders the scripts create. For example:
+
+```bash
+bash j6passes.sh tempo150 sweep
+```
+
+```bash
+python3 j6analyze.py captures -o measurements.csv
+```
+
 Keep the backup of your own patterns: every restore below overwrites all 64.
 
 ### 1. Harvest the defaults (once, by hand)
@@ -258,10 +271,11 @@ Two further pattern sets, each recorded with `bash j6passes.sh tempo150 sweep`
 | Set | Patterns | Recordings | Question |
 |---|---|---|---|
 | `tempo150` | every sound at its defaults, tempo 150 BPM | full pass; velocity ladder on 1-3, 2-7, 4-4, 6-8; polyphony test on 2-7, 4-7, 7-2 | do the LFO rates and delays scale by 1.5 with tempo, and does anything else; level against velocity; number of voices |
-| `sweep` | `plans/sweep.csv`: 16 steps (0, 17 ... 255) of FILTER on 6-8, RESONANCE on 2-7, ATTACK on 2-7, ENV on 1-3 | full stimulus, then the ENV sweep with long tails | knob value against cutoff (Hz, read from the self-oscillating filter), resonance, attack time, decay / sustain / release |
+| `sweep` | 16 steps (0, 17 ... 255) of FILTER on 6-8, RESONANCE on 2-7, ATTACK on 2-7, ENV on 1-3 | full stimulus, then the ENV sweep with long tails | knob value against cutoff (Hz, read from the self-oscillating filter), resonance, attack time, decay / sustain / release |
 
-`j6prm.py generate --plan FILE` builds any pattern set from a CSV giving each
-pattern its sound and knob values. `j6capture.py` has three extra stimuli:
+`j6prm.py generate --plan sweep` builds the sweep set (the plan is built in);
+`--plan FILE` builds any pattern set from a CSV giving each pattern its sound
+and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM). `j6capture.py` has three extra stimuli:
 `envelope` (6 s note, 8 s tail, staccato, 6 s tail), `velocity` (A3 at 16
 velocities, 8 to 127) and `poly` (six notes entering 0.5 s apart, released
 together).
