@@ -15,6 +15,7 @@ it. Two sources remain:
 | `j6prm.py` | inspect backups, extract per-sound defaults, generate pattern sets for restore |
 | `j6capture.py` | select each pattern by Program Change, play test notes, record the USB audio |
 | `j6passes.sh` | generate, restore and record the remaining passes in one run |
+| `j6analyze.py` | measure every sound from the recorded takes |
 
 Both need only Python 3.8 or later. `j6capture.py` runs on Linux and needs
 `arecord` and `aplaymidi` from alsa-utils, plus `flac` if you want compressed
@@ -191,6 +192,45 @@ Each take has a JSON sidecar recording the pattern, its settings (with
 `--prm-dir`), the planned and actual time of every note, and the peak level.
 `session.json` logs each run, and `hw_params.txt` the J-6's native audio
 formats.
+
+## Analysis and results
+
+`j6analyze.py` measures every sound from the four passes' takes and writes
+one CSV row per sound. It needs numpy, scipy and soundfile:
+
+```bash
+sudo apt install python3-numpy python3-scipy python3-soundfile
+```
+
+```bash
+python3 j6analyze.py captures -o measurements.csv
+```
+
+`results/defaults.csv` holds the harvested defaults (`FILTER`, `RESONANCE`,
+`ENV`, `ATTACK` per sound), and `results/measurements.csv` the measurements
+from a factory-reset v1.02 unit. The script's header defines each column.
+
+Findings that hold across the 64 sounds:
+
+- Choosing a sound writes its own `FILTER`, `RESONANCE` and `ATTACK`; `ENV`
+  is always 128. 36 sounds have a non-zero attack.
+- [ENVELOPE] is a macro on decay, sustain and release, not on release only:
+  at 255 every pluck sustains, at 0 releases fall to about 10 ms.
+- Chorus I and II are distinct: the stereo difference signal pulses at
+  1.09 Hz for I and 1.76 Hz for II; chorus off is exact mono.
+- Velocity changes the level by 19-20 dB between 40 and 127 on every sound,
+  about level proportional to velocity squared.
+- Glide is polyphonic: each voice glides from the last pitch it played.
+- With [CHORD] unlit, MIDI notes play single notes at their MIDI pitch; the
+  tuning measured within 0.3 cent of 440 Hz.
+- The J-6 ignores All Sound Off.
+
+Limits: octave and sub-oscillator are ambiguous for mixed waveforms (a
+square plus a saw at one pitch has the same harmonic magnitudes as a
+sub-oscillator plus a saw an octave up). Sounds that decay within 1.5 s get
+no LFO, PWM or chorus measurement. The default pass was recorded with
+`ATTACK` 0, so attack times come from the open pass. The env passes were
+recorded in chord mode and are used for envelope levels and times only.
 
 ## Troubleshooting
 
