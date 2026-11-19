@@ -33,7 +33,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = "1.2"
+VERSION = "1.3"
 
 # Test notes: (name, MIDI note, velocity or None for --velocity, note-on time s, gate s).
 # Roland numbering, C4 = 60: A2 = 45 (110 Hz), E3 = 52, A3 = 57, A4 = 69 (440 Hz).
@@ -51,8 +51,20 @@ STIMULI = {
         ("long_A2", 45, None, 0.00, 6.00),
         ("staccato_A2", 45, None, 9.00, 0.15),
     ],
+    # long tails, for sounds whose release lasts seconds ([ENVELOPE] sweeps)
+    "envelope": [
+        ("long_A2", 45, None, 0.00, 6.00),
+        ("staccato_A2", 45, None, 14.00, 0.15),
+    ],
+    # A3 at 16 velocities, one per second: level and brightness against velocity
+    "velocity": [(f"vel_{v:03d}", 57, v, float(i), 0.5)
+                 for i, v in enumerate([8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 127])],
+    # six overlapping notes, entering 0.5 s apart, all released at 4 s: how many
+    # voices sound, and which notes are dropped
+    "poly": [(f"poly_{n}", n, None, 0.5 * i, 4.0 - 0.5 * i)
+             for i, n in enumerate([48, 52, 55, 59, 62, 65])],
 }
-TAIL = {"full": 2.00, "short": 2.35}  # recorded after the last note-off
+TAIL = {"full": 2.00, "short": 2.35, "envelope": 6.0, "velocity": 1.0, "poly": 2.5}  # after the last note-off
 PRE_ROLL = 0.8   # s between starting arecord and the first note (noise floor)
 NATIVE_RATE = 44100  # the J-6's only USB audio rate (S32_LE, stereo) on a v1.02 unit
 MARGIN = 0.5
@@ -270,7 +282,8 @@ def main() -> None:
     ap.add_argument("--patterns", type=parse_patterns, default=parse_patterns("1..64"),
                     help="e.g. 1..64 (default), 1..3, 2-5 (panel label), 1,9,17")
     ap.add_argument("--stimulus", choices=sorted(STIMULI), default="full",
-                    help="full (about 26 s per take) or short (about 13 s)")
+                    help="full (about 26 s per take), short (13 s), envelope (22 s, long "
+                    "tails), velocity (18 s, A3 at 16 velocities), poly (8 s, six overlapping notes)")
     ap.add_argument("--prm-dir", help="the RESTORE folder generated for this pass, "
                     "to store each pattern's settings with its take")
     ap.add_argument("--card", default="J6", help="ALSA card id for audio (default J6)")
@@ -389,8 +402,6 @@ def main() -> None:
             if prm_dir:
                 prm = prm_dir / f"J6_PTN{n:02d}.PRM"
                 settings = read_prm(prm) if prm.exists() else {}
-                if settings and int(settings["SOUND"]) != n - 1:
-                    print(f"  warning: {prm.name} holds sound {label(int(settings['SOUND']))}")
 
             midi.send(silence(args.note_channel))
             time.sleep(0.2)

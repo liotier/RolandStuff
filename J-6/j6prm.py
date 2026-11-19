@@ -192,6 +192,27 @@ def read_defaults(path) -> dict[int, dict[str, int]]:
     return table
 
 
+def read_plan(path) -> dict[int, dict]:
+    """Pattern plan: CSV with columns pattern (1-64 or a panel label), sound
+    (panel label) and optionally FILTER, RESONANCE, ENV, ATTACK, BPM. Empty
+    cells fall back to the command-line values or the sound's defaults."""
+    plan = {}
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            pat = row["pattern"].strip()
+            n = (int(pat[0]) - 1) * 8 + int(pat[2]) if "-" in pat else int(pat)
+            snd = row["sound"].strip()
+            step = {"sound": (int(snd[0]) - 1) * 8 + int(snd[2]) - 1}
+            for k in (*KNOBS, "BPM"):
+                v = (row.get(k) or "").strip()
+                if v:
+                    step[k] = float(v) if k == "BPM" else int(v)
+                    if k in KNOBS and not 0 <= step[k] <= 255:
+                        sys.exit(f"{path}: pattern {pat}: {k} must be 0-255")
+            plan[n] = step
+    return plan
+
+
 def cmd_generate(args) -> None:
     template = Prm(args.template)
     if not template.bars_empty():
@@ -204,6 +225,7 @@ def cmd_generate(args) -> None:
         sys.exit(f"'default' for {', '.join(wants_default)} needs --defaults "
                  "(a CSV written by the 'defaults' subcommand), or give numbers")
     defaults = read_defaults(args.defaults) if args.defaults else {}
+    plan = read_plan(args.plan) if args.plan else {}
 
     out = Path(args.out)
     if out.exists() and any(out.iterdir()):
@@ -213,18 +235,21 @@ def cmd_generate(args) -> None:
 
     manifest = []
     for i in range(N):
-        values = {"SOUND": i, "DELAY": 0, "REVERB": 0, "TRANSPOSE": 0, **INIT_STYLE}
+        step = plan.get(i + 1, {})
+        sound = step.get("sound", i)
+        values = {"SOUND": sound, "DELAY": 0, "REVERB": 0, "TRANSPOSE": 0, **INIT_STYLE}
         for k in KNOBS:
             if k in omit:
                 continue
-            value = getattr(args, k.lower())
+            value = step.get(k, getattr(args, k.lower()))
             if value == "default":
-                if i not in defaults:
-                    sys.exit(f"{args.defaults} has no valid default {k} for sound {label(i)}")
-                value = defaults[i][k]
+                if sound not in defaults:
+                    sys.exit(f"{args.defaults} has no valid default {k} for sound {label(sound)}")
+                value = defaults[sound][k]
             values[k] = value
-        if args.bpm is not None:
-            values["TEMPO"] = round(args.bpm * 100)
+        bpm = step.get("BPM", args.bpm)
+        if bpm is not None:
+            values["TEMPO"] = round(bpm * 100)
         if args.level is not None:
             values["LEVEL"] = args.level
         path = restore / f"J6_PTN{i + 1:02d}.PRM"
@@ -233,7 +258,7 @@ def cmd_generate(args) -> None:
         if (check.keys != [k for k in template.keys if k not in omit]
                 or any(check[k] != int(v) for k, v in values.items())):
             sys.exit(f"{path}: verification failed")
-        manifest.append({"pattern": label(i), "program_change": i, "sound": label(i),
+        manifest.append({"pattern": label(i), "program_change": i, "sound": label(sound),
                          **{k: (check[k] if k in check.values else "") for k in
                             (*KNOBS, "TEMPO", "LEVEL")}})
 
@@ -271,6 +296,8 @@ def main() -> None:
     p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
+    p.add_argument("--plan", help="CSV giving each pattern its sound and knob values "
+                   "(columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
     p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
                    "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")
     p.set_defaults(func=cmd_generate)
