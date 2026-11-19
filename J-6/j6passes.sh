@@ -50,7 +50,7 @@ for p in "${PASSES[@]}"; do
     read -r -p "unmount failed: eject the J-6 drive from the file manager, then press Enter "
   fi
   echo "press [CHORD] to restore and wait until the LEDs stop blinking, then switch off and on normally."
-  echo "Chord mode can be on after a restore: make sure [CHORD] is unlit, otherwise every"
+  echo "[CHORD] is on after every power-on: press it so that it is unlit, otherwise every"
   echo "test note plays a chord."
   read -r -p "[CHORD] unlit? press Enter to record "
   until grep -q '\[J6 ' "$CARDS"; do sleep 1; done

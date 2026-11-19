@@ -30,6 +30,8 @@ Measurements, per sound:
                 (PWM), both channels; a modulation counts if it moves both
                 channels in phase and is not within 0.35 Hz of the chorus rate,
                 half it or twice it (the analysis resolves about 0.2 Hz);
+                each rate is matched to a note value at the pattern tempo, since
+                the J-6's LFOs follow it; slowest detectable rate 0.3 Hz;
                 chorus I or II from the stereo difference signal
   env passes    sustain and release with [ENVELOPE] at 0 and 255
 
@@ -296,7 +298,7 @@ def band(s, rate, hop=0.01, width=0.3):
     return np.fft.irfft(spec, len(s))
 
 
-def lfo(per, col, exclude=(), hop=0.01, fmin=0.15, fmax=18.0):
+def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0):
     """The most prominent modulation that moves both channels in phase (a
     chorus sweeps them in opposite phase). Returns rate, prominence, swing
     (p95-p5 of the band-limited mean of both channels) and the series."""
@@ -470,6 +472,20 @@ def audible_until(take: Take, gate: float, below=40):
     return float(t[low[0]]) if len(low) else gate
 
 
+# Note values in beats, for LFO rates that follow the pattern tempo.
+NOTE_VALUES = [(4, "1/1"), (3, "1/2."), (2, "1/2"), (1.5, "1/4."), (4 / 3, "1/2T"), (1, "1/4"),
+               (0.75, "1/8."), (2 / 3, "1/4T"), (0.5, "1/8"), (0.375, "1/16."), (1 / 3, "1/8T"),
+               (0.25, "1/16"), (0.1875, "1/32."), (1 / 6, "1/16T"), (0.125, "1/32")]
+
+
+def note_value(rate: float, bpm: float):
+    """Nearest note value whose repetition rate at bpm matches rate within 5 %
+    (or 0.12 Hz, the analysis resolution for slow rates)."""
+    best = min(NOTE_VALUES, key=lambda nv: abs(math.log(rate / (bpm / 60 / nv[0]))))
+    exact = bpm / 60 / best[0]
+    return best[1] if abs(rate - exact) <= max(0.05 * exact, 0.12) else None
+
+
 def single_note(take: Take) -> bool:
     """True when the A2 note's energy sits on one harmonic series, false for a
     chord. The series' actual fundamental is found first (detuned sounds), then
@@ -571,17 +587,27 @@ def analyse_sound(takes: dict, idx: int) -> dict:
         if bl is not None and br is not None:
             mb = (bl + br) / 2
             row["brightness_wobble_oct"] = r(float(np.percentile(mb, 95) - np.percentile(mb, 5)), 2)
-        # The chorus LFO (half the measured chorus rate) has a whole harmonic
-        # series; a detection on one of its harmonics may be the chorus.
+        # The chorus LFO (half the measured chorus rate) is free-running and has
+        # a whole harmonic series; the J-6's LFOs follow the pattern tempo. A
+        # detection on a chorus harmonic that matches no note value is dropped as
+        # the chorus; one that matches a note value is kept and flagged.
+        bpm = float(tk.meta.get("prm", {}).get("TEMPO", 10000)) / 100
+        row["tempo_bpm"] = bpm
         flags = []
-        for name, res in found.items():
+        for name in list(found):
+            rate = found[name][0]
             for v in rates:
-                k = round(res[0] / (v / 2))
-                if k >= 1 and abs(res[0] - k * v / 2) < 0.15:
-                    flags.append(f"{name} at chorus harmonic {k}")
+                k = round(rate / (v / 2))
+                if k >= 1 and abs(rate - k * v / 2) < 0.15:
+                    if note_value(rate, bpm) is None:
+                        del found[name]
+                    else:
+                        flags.append(f"{name} also on chorus harmonic {k}")
+                    break
         row["lfo_flags"] = "; ".join(flags) or None
         for name in ("vibrato", "filter_lfo", "pwm"):
             res = found.get(name)
+            row[f"{name}_note"] = note_value(res[0], bpm) if res else None
             row[f"{name}_hz"] = r(res[0], 2) if res else None
             row[f"{name}_swing"] = r(res[2], 2) if res else None
             row[f"{name}_delay_s"] = r(modulation_delay(band(res[3], res[0]), res[0]), 2) if res else None

@@ -5,10 +5,12 @@ the measured values, with harvested defaults and method notes.
   python3 j6compare.py results/measurements.csv results/defaults.csv \
       REFERENCE.xlsx results/J6_sounds_measured.xlsx
 
-REFERENCE.xlsx is "Roland J-6 Preset Sounds Settings Ver. 1.0", produced by
-Nick Standing at JabunAudio; its values are quoted for comparison only, with
-this citation in the workbook. Needs openpyxl. Agreement flags are formulas:
-open the result in a spreadsheet application to see them computed.
+REFERENCE.xlsx is Nick Standing (JabunAudio), "Roland J-6 Preset Sounds
+Settings Ver. 1.0", published with the video "Roland AIRA Compact J-6
+Comprehensive Preset Sounds Patch Sheet! (Free download or donation)",
+https://www.youtube.com/watch?v=z6hoNwWadR8. Its values are quoted for
+comparison only, with this citation in the workbook. Needs openpyxl.
+Agreement flags are formulas: open the result in a spreadsheet application.
 """
 import csv, re, sys
 import openpyxl
@@ -55,8 +57,8 @@ method = wb.create_sheet("Method")
 # ---------------- Comparison ----------------
 cols = [  # (header, source, key, number format, width, comment)
     ("Sound", "label", None, None, 7, None),
-    ("Name (spreadsheet)", "name", None, None, 34, "Grey columns quote the reference spreadsheet for comparison: 'Roland J-6 Preset Sounds Settings Ver. 1.0', produced by Nick Standing at JabunAudio. This column is the text before the colon in its Notes column."),
-    ("Modulation measurable", "modok", None, None, 12, "'no' when the long note decays before 1.5 s (plucks): LFO, PWM and chorus cannot be measured from these takes."),
+    ("Name (spreadsheet)", "name", None, None, 34, "Grey columns quote the reference spreadsheet for comparison: Nick Standing (JabunAudio), 'Roland J-6 Preset Sounds Settings Ver. 1.0', patch sheet published with the video 'Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet! (Free download or donation)', https://www.youtube.com/watch?v=z6hoNwWadR8. This column is the text before the colon in its Notes column."),
+    ("Modulation measurable", "modok", None, None, 12, "'no' when no take of the sound lasts 1.5 s. Plucks are measured on the env255 pass, where [ENVELOPE] at 255 makes them sustain."),
     ("Chorus (sheet)", "sheet", "chorus", None, 9, None),
     ("Chorus (measured)", "meas", "chorus", None, 10, "I or II from the rate at which the stereo difference/sum energy ratio pulses (1.09 Hz for I, 1.76 Hz for II); Off when the channels are identical; 'on' when chorus is present but the rate is unclear."),
     ("Chorus agree", "f_chorus", None, None, 9, None),
@@ -67,14 +69,17 @@ cols = [  # (header, source, key, number format, width, comment)
     ("Vibrato (Hz)", "meas", "vibrato_hz", "0.00", 9, "Rate of an in-phase pitch modulation of the A2 note (open-filter pass)."),
     ("Vibrato p95-p5 (cents)", "meas", "vibrato_swing", "0", 10, "Peak-to-peak pitch swing of the band-limited modulation."),
     ("Vibrato delay (s)", "meas", "vibrato_delay_s", "0.00", 9, "Time until the vibrato reaches half its final depth."),
+    ("Vibrato note at 100 BPM", "meas", "vibrato_note", None, 9, "Note value whose repetition rate at the patterns' 100 BPM matches the measured rate (1/8. = dotted eighth, 1/4T = quarter triplet). Every LFO detected matches one: the J-6's LFOs follow the tempo."),
     ("Vibrato agree", "f_vib", None, None, 9, None),
     ("VCF LFO (sheet)", "sheet", "vcf_lfo", None, 9, None),
     ("Filter LFO (Hz)", "meas", "filter_lfo_hz", "0.00", 9, "Rate of an in-phase brightness (spectral centroid) modulation, default pass."),
     ("Filter LFO p95-p5 (octaves)", "meas", "filter_lfo_swing", "0.00", 10, None),
+    ("Filter LFO note at 100 BPM", "meas", "filter_lfo_note", None, 9, None),
     ("Filter LFO agree", "f_flfo", None, None, 9, None),
     ("PWM (sheet)", "sheet", "pwm", None, 8, None),
     ("PWM LFO (Hz)", "meas", "pwm_hz", "0.00", 9, "Rate of an in-phase modulation of the even harmonics' share of energy, open-filter pass."),
-    ("LFO flags", "meas", "lfo_flags", None, 28, "A detection on a harmonic of the chorus LFO (about 0.545 Hz for I, 0.88 Hz for II) may be the chorus rather than an LFO."),
+    ("PWM note at 100 BPM", "meas", "pwm_note", None, 9, None),
+    ("LFO flags", "meas", "lfo_flags", None, 28, "The chorus LFO (about 0.545 Hz for I, 0.88 Hz for II) is free-running and shows at its harmonics. Detections on one of them that match no note value were dropped; those listed here match a note value and are kept."),
     ("Pulse (sheet)", "sheet", "pulse", None, 8, None),
     ("Saw (sheet)", "sheet", "saw", None, 7, None),
     ("Waveform (measured)", "meas", "wave", None, 16, "From the harmonic levels of the A4 note, open-filter pass, averaged over the note. 'pulse ~d' gives the duty cycle d that fits the 2nd/1st harmonic ratio for a pure pulse; a saw mixed with a pulse also lands there."),
@@ -143,7 +148,7 @@ last = len(order) + 1
 
 # ---------------- Summary ----------------
 summary["A1"] = "J-6 preset sounds: measured against the reference spreadsheet"; summary["A1"].font = Font(name="Arial", size=12, bold=True)
-summary["A2"] = "Reference, quoted for comparison: 'Roland J-6 Preset Sounds Settings Ver. 1.0', produced by Nick Standing at JabunAudio. Measurements: recordings of a factory-reset J-6 on system program 1.02, see Method."
+summary["A2"] = "Reference, quoted for comparison: Nick Standing (JabunAudio), 'Roland J-6 Preset Sounds Settings Ver. 1.0', patch sheet published with the video 'Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet! (Free download or donation)', https://www.youtube.com/watch?v=z6hoNwWadR8. Measurements: recordings of a factory-reset J-6 on system program 1.02, see Method."
 summary["A2"].font = FONT
 hdr = ["Attribute", "Agree", "Disagree", "Not measurable", "Agreement"]
 for c, h in enumerate(hdr, 1):
@@ -201,21 +206,21 @@ lines = [
     ("Method", True),
     ("Instrument: Roland J-6, system program 1.02, factory reset. USB audio recorded at its native 44.1 kHz, 24-bit stereo.", False),
     ("Stimulus per sound: A2 held 6 s, A2 staccato 0.15 s, A4 1.5 s, A2 then E3 (glide), A3 at velocity 40 and 127. Chord mode off: incoming notes play single notes.", False),
-    ("Passes: default (each sound's harvested FILTER, RESONANCE, ENV 128, ATTACK; but recorded with ATTACK 0, see caveats), open (FILTER 255, RESONANCE 0, own ATTACK), env000 and env255 ([ENVELOPE] at 0 and 255).", False),
+    ("Passes: default (each sound's harvested FILTER, RESONANCE, ENV 128 and ATTACK), open (FILTER 255, RESONANCE 0), env000 and env255 ([ENVELOPE] at 0 and 255). Pattern tempo 100 BPM.", False),
     ("Delay and reverb levels were 0 in every pass. Pattern tempo 100 BPM.", False),
     ("Alignment: the first note's onset is found from the audio, because the recorder's start-up varies by tens of milliseconds; the notes' relative timing is exact.", False),
     ("", False),
     ("Caveats", True),
-    ("The default pass was recorded with ATTACK 0 for all sounds, so attack times come from the open pass, whose patterns carry each sound's own ATTACK.", False),
-    ("The env000 and env255 passes were recorded in chord mode: valid for envelope levels and times, not for spectra or pitch.", False),
-    ("The J-6 ignores All Sound Off, so with [ENVELOPE] at 255 a sound can still ring when the next take starts; those releases are measured only down to that floor.", False),
+    ("[CHORD] is on after every power-on; with it on, each MIDI note plays a chord. The env000 pass was recorded in chord mode and is used for envelope levels and times only.", False),
+    ("The J-6 ignores All Sound Off. The env255 pass waited 10 s between patterns; previous sounds were still audible at -77 to -95 dBFS in 24 takes, negligible against notes at -25 to -45 dBFS.", False),
     ("Octave and sub-oscillator are ambiguous for mixed waveforms: a square plus a saw at one pitch has the same harmonic magnitudes as a sub-oscillator plus a saw an octave up.", False),
-    ("LFO detection needs a long note: plucks that decay within about 1.5 s get no LFO, PWM or chorus measurement. The chorus produces modulation at its own rate's harmonics; detections on them are flagged.", False),
+    ("LFO detection needs about 1.5 s of sound: plucks are measured on the env255 pass. Rates below 0.3 Hz are not detected. The analysis resolves about 0.2 Hz.", False),
+    ("All 43 LFO detections match a note value at 100 BPM (from dotted half to dotted thirty-second): strong evidence that the LFOs follow the pattern tempo. A pass at another tempo would confirm it.", False),
     ("Glide is polyphonic: each voice glides from the last pitch it played, so only the settle time is comparable between sounds.", False),
     ("[ENVELOPE] acts on decay, sustain and release together; at 255 every pluck sustains (see the ENV 0 / ENV 255 sustain columns).", False),
     ("", False),
     ("Sources", True),
-    ("Reference spreadsheet (grey columns of the Comparison sheet, quoted for comparison): 'Roland J-6 Preset Sounds Settings Ver. 1.0', produced by Nick Standing at JabunAudio.", False),
+    ("Reference spreadsheet (grey columns of the Comparison sheet, quoted for comparison): Nick Standing (JabunAudio), 'Roland J-6 Preset Sounds Settings Ver. 1.0', patch sheet published with the video 'Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet! (Free download or donation)', https://www.youtube.com/watch?v=z6hoNwWadR8.", False),
     ("J-6 Owner's Manual v1.02, Top Panel: https://static.roland.com/manuals/J-6_manual_v102/eng/26654326.html", False),
     ("J-6 Owner's Manual v1.02, Backup/Restore: https://static.roland.com/manuals/J-6_manual_v102/eng/26654319.html", False),
     ("Tools and procedure: https://github.com/liotier/RolandStuff/tree/claude/affectionate-franklin-t1cy4x/J-6", False),

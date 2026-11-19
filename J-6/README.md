@@ -215,11 +215,12 @@ python3 j6analyze.py captures -o measurements.csv
 from a factory-reset v1.02 unit. The script's header defines each column.
 
 `results/J6_sounds_measured.xlsx` sets the measurements beside the
-judgements of the reference spreadsheet, *Roland J-6 Preset Sounds Settings
-Ver. 1.0*, produced by Nick Standing at JabunAudio, quoted for comparison.
-Where both can be compared, chorus agrees on 56 of 56 sounds, glide on 60 of
-60, vibrato on 49 of 56 and filter LFO on 41 of 56. `j6compare.py` rebuilds
-the workbook from the CSV files and the reference spreadsheet.
+judgements of the reference spreadsheet, quoted for comparison: Nick Standing
+(JabunAudio), *Roland J-6 Preset Sounds Settings Ver. 1.0*, published with the
+video [Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet!](https://www.youtube.com/watch?v=z6hoNwWadR8).
+Chorus agrees on 64 of 64 sounds, glide on 60 of 60 measurable, vibrato on 56
+of 64 and filter LFO on 53 of 64. `j6compare.py` rebuilds the workbook from
+the CSV files and the reference spreadsheet.
 
 Findings that hold across the 64 sounds:
 
@@ -232,16 +233,22 @@ Findings that hold across the 64 sounds:
 - Velocity changes the level by 19-20 dB between 40 and 127 on every sound,
   about level proportional to velocity squared.
 - Glide is polyphonic: each voice glides from the last pitch it played.
-- With [CHORD] unlit, MIDI notes play single notes at their MIDI pitch; the
+- The LFOs follow the pattern tempo: all 43 LFO detections fall on a note
+  value at 100 BPM, from a dotted half (0.56 Hz) to a dotted thirty-second
+  (8.89 Hz). The chorus is free-running. A pass at another tempo would
+  confirm it.
+- [CHORD] is on after every power-on, and then each MIDI note plays a chord.
+  With [CHORD] unlit, MIDI notes play single notes at their MIDI pitch; the
   tuning measured within 0.3 cent of 440 Hz.
 - The J-6 ignores All Sound Off.
 
 Limits: octave and sub-oscillator are ambiguous for mixed waveforms (a
 square plus a saw at one pitch has the same harmonic magnitudes as a
 sub-oscillator plus a saw an octave up). Sounds that decay within 1.5 s get
-no LFO, PWM or chorus measurement. The default pass was recorded with
-`ATTACK` 0, so attack times come from the open pass. The env passes were
-recorded in chord mode and are used for envelope levels and times only.
+no LFO, PWM or chorus measurement in the default and open passes; they are
+measured on the env255 pass, where they sustain. LFO rates below 0.3 Hz are
+not detected. The env000 pass was recorded in chord mode and is used for
+envelope levels and times only.
 
 ## Troubleshooting
 
