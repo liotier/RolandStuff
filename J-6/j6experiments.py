@@ -105,7 +105,7 @@ def peak_rate(d, hop=0.01, fmin=0.5, fmax=20.0) -> float:
     return float(f[sel][np.argmax(spec[sel])])
 
 
-def averaged_peak_rate(ds, exclude=(), hop=0.01, fmin=0.5, fmax=20.0):
+def averaged_peak_rate(ds, exclude=(), hop=0.01, fmin=0.5, fmax=20.0, guard=0.35):
     """Strongest periodicity of several jump series together (their spectra,
     each divided by its median, summed), away from the excluded rates; and its
     height against the median of the sum."""
@@ -116,7 +116,7 @@ def averaged_peak_rate(ds, exclude=(), hop=0.01, fmin=0.5, fmax=20.0):
         tot += spec / max(np.median(spec), 1e-12)
     sel = (f > fmin) & (f < fmax)
     for e in exclude:
-        sel &= np.abs(f - e) >= 0.35
+        sel &= np.abs(f - e) >= guard
     i = int(np.argmax(np.where(sel, tot, -1)))
     return float(f[i]), float(tot[i] / np.median(tot[sel]))
 
@@ -447,7 +447,8 @@ def concentration(angles) -> float:
 
 # Note values for reporting a measured rate, the triplet whole note included
 # (two slow LFOs run at 0.624 Hz, 2 2/3 beats at 100 BPM)
-REPORT_VALUES = sorted(A.NOTE_VALUES + [(8 / 3, "1/1T"), (6, "1/1."), (8, "2/1")], reverse=True)
+REPORT_VALUES = sorted(A.NOTE_VALUES + [(8 / 3, "1/1T"), (6, "1/1."), (8, "2/1"), (1 / 16, "1/64"),
+                                        (1 / 32, "1/128")], reverse=True)
 
 
 def nearest_value(rate: float, bpm: float):
@@ -484,7 +485,47 @@ def free_rate(series, f_med: float, bpm: float):
     return max(np.arange(f_med - 0.06, f_med + 0.0601, 0.002), key=lambda g: score(g)[0])
 
 
-def keysync(root: Path, out: Path, folder: str = "keysync") -> None:
+def known_rates(longnote_rows, lab: str, bpm: float) -> list[tuple[str, float]]:
+    """Modulations the long note found on this sound at this tempo, chorus
+    harmonics left out, plus those found at another tempo that follow the
+    tempo (their rate scaled), each rate set to its note value when within
+    0.5 % or 0.01 Hz (the long note's precision)."""
+    out = []
+    for row in longnote_rows or []:
+        if row["sound"] != lab or not row.get("rate_hz") or row["chorus_harmonic"]:
+            continue
+        if row["measurement"] not in ("vibrato", "filter LFO", "PWM", "audio-rate component"):
+            continue
+        if row["tempo_bpm"] == bpm:
+            f = row["rate_hz"]
+        elif row.get(f"at_{bpm:g}_bpm") == "follows the tempo":
+            f = row["rate_hz"] * bpm / row["tempo_bpm"]
+        else:
+            continue
+        name, _ = nearest_value(f, bpm)
+        exact = bpm / 60 / dict((nm, bt) for bt, nm in REPORT_VALUES)[name]
+        if abs(f - exact) < max(0.005 * exact, 0.01):
+            f = exact
+        if all(abs(f - g) > 0.02 or k != row["measurement"] for k, g in out):
+            out.append((row["measurement"], f))
+    return out
+
+
+def audio_phases(tk: A.Take, notes, f: float):
+    """Phase of the component at f on each note (a DFT from 0.5 s after the
+    note-on), against the note-on and against the take."""
+    rel, big = [], []
+    for e in notes:
+        a, b = e["on"] + 0.5, e["off"] - 0.05
+        x = tk.seg(a, b)
+        t = a + np.arange(len(x)) / tk.sr
+        z = np.sum(x * np.exp(-2j * np.pi * f * t))
+        big.append(float(np.angle(z)))
+        rel.append(float(np.angle(z) + 2 * np.pi * f * e["on"]))
+    return rel, big
+
+
+def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
     """Seven A2 notes per sound. Each modulation (pitch, brightness, even-
     harmonic share; the stepped brightness of a sample and hold when none is
     periodic) is found on most notes at one rate, then its phase is measured
@@ -509,6 +550,40 @@ def keysync(root: Path, out: Path, folder: str = "keysync") -> None:
         # (minimum swings as in j6analyze.py: smaller ones include the frame
         # analysis's own ripple, 10 Hz for A2 at 10 ms frames)
         cand = {}
+        # with the long notes' rates, the phases are measured at those rates
+        # (the per-note detection misses slow LFOs next to the chorus)
+        rates = known_rates(known, lab, bpm)
+        if rates:
+            verdicts = []
+            for kind, f in rates:
+                if kind == "audio-rate component":
+                    rel, big = audio_phases(tk, notes, f)
+                else:
+                    col = {"vibrato": 0, "filter LFO": 1, "PWM": 2}[kind]
+                    series = []
+                    for e, tr in zip(notes, tracks):
+                        sv = A._clean((tr[:, 0, col] + tr[:, 1, col]) / 2) if tr is not None else None
+                        if sv is not None:
+                            series.append((e, 0.14 + 0.01 * np.arange(len(sv)), sv))
+                    ph = note_phases(series, f)
+                    rel, big = [th for _, _, th, _ in ph], [b for _, _, _, b in ph]
+                for e, th, b in zip(notes, rel, big):
+                    rows.append({"sound": lab, "tempo_bpm": bpm, "measurement": kind, "rate_hz": r(f, 3),
+                                 "note": e["name"], "onset_s": e["on"],
+                                 "phase_re_note_on_deg": r(math.degrees(th) % 360, 0),
+                                 "phase_re_take_deg": r(math.degrees(b) % 360, 0)})
+                r_note, r_take = concentration(rel), concentration(big)
+                verdict = ("restarts with each note" if r_note >= 0.8 and r_note - r_take >= 0.3 else
+                           "free-running" if r_take >= 0.9 and r_take - r_note >= 0.3 else "unclear")
+                name, dev = nearest_value(f, bpm)
+                summary.append({"sound": lab, "tempo_bpm": bpm, "chorus": ch, "measurement": kind,
+                                "rate_hz": r(f, 3), "nearest_note_value": name, "deviation_pct": r(dev, 1),
+                                "concentration_re_note_on": r(r_note, 2), "concentration_re_take": r(r_take, 2),
+                                "verdict": verdict, "rate_from": "long note"})
+                verdicts.append(f"{kind} {f:.3f} Hz ({name}): {r_note:.2f} against the note-on, "
+                                f"{r_take:.2f} against the take -> {verdict}")
+            print(f"  {lab} at {bpm:g} BPM, rates from the long note: " + "; ".join(verdicts))
+            continue
         for col, kind, least in ((0, "vibrato", 6.0), (1, "filter LFO", 0.1), (2, "PWM", 0.05)):
             found = [res for res in (A.lfo(tr, col, exclude) if tr is not None else None for tr in tracks)
                      if res and res[2] > least]
@@ -528,8 +603,8 @@ def keysync(root: Path, out: Path, folder: str = "keysync") -> None:
                 if prom >= 4 and A.note_value(rate, bpm):
                     cand["stepped brightness"] = (rate, prom, [(e, t - e["on"], d - d.mean()) for e, t, d in per])
         if not cand:
-            print(f"  {lab}: no LFO found on the notes")
-            summary.append({"sound": lab, "chorus": ch, "verdict": "no LFO found"})
+            print(f"  {lab} at {bpm:g} BPM: no LFO found on the notes")
+            summary.append({"sound": lab, "tempo_bpm": bpm, "chorus": ch, "verdict": "no LFO found"})
             continue
         verdicts = []
         for kind, (f_med, prom, series) in sorted(cand.items(), key=lambda kv: -kv[1][1]):
@@ -769,20 +844,69 @@ def describe_rate(f: float, bpm: float, chorus_lfo) -> tuple[str, float, str]:
     return name, dev, (harm[0] if harm else "")
 
 
-def longnote(root: Path, out: Path) -> None:
+def mod_series(tk: A.Take, end: float):
+    """Pitch, brightness and even-share series of the long note, each as
+    (left, right, mean), cleaned; None where a channel is silent."""
+    tr = A.track(tk, 0.1, end, A.A2)
+    out = {}
+    for col, kind in ((0, "vibrato"), (1, "filter LFO"), (2, "PWM")):
+        left, right = A._clean(tr[:, 0, col]), A._clean(tr[:, 1, col])
+        out[kind] = None if left is None or right is None else (left, right, (left + right) / 2)
+    return out
+
+
+def peak_height(series, f, hop=0.01):
+    """Height of the spectral peak within 0.03 Hz of f against the median
+    0.15-18 Hz, and its rate."""
+    spec = np.abs(np.fft.rfft(series * np.hanning(len(series)), 1 << 16))
+    fr = np.fft.rfftfreq(1 << 16, hop)
+    base = max(np.median(spec[(fr > 0.15) & (fr < 18)]), 1e-12)
+    sel = np.flatnonzero(np.abs(fr - f) <= 0.03)
+    i = sel[np.argmax(spec[sel])]
+    return float(spec[i] / base), float(fr[i])
+
+
+def audio_components(tk: A.Take, start: float, end: float, f0: float):
+    """Components of the sound below its fundamental, 15 Hz to 0.95 f0,
+    within 10 dB of its strongest component and more than 0.5 Hz from a
+    sub-oscillator (f0 / 2, f0 / 4 and their multiples): an audio-rate
+    modulation, as on a ring-modulated sound. Vibrato sidebands stay far
+    below 10 dB. Frequencies refined by a parabola."""
+    from scipy.signal import find_peaks
+    f, m = A.spectrum(tk.seg(start, end), tk.sr, 1 << 21)
+    sel = (f > 15) & (f < 4000)
+    f, m = f[sel], m[sel]
+    db = 20 * np.log10(m / m.max() + 1e-12)
+    pk, _ = find_peaks(db, height=-10, distance=max(int(1.0 / (f[1] - f[0])), 1))
+    out = []
+    for i in pk:
+        if f[i] < 0.95 * f0 and abs(f[i] - f0 / 4 * round(f[i] / (f0 / 4))) > 0.5:
+            y0, y1, y2 = np.log(m[i - 1: i + 2])
+            out.append((float(f[i] + 0.5 * (y0 - y2) / (y0 - 2 * y1 + y2) * (f[1] - f[0])), float(db[i])))
+    return out
+
+
+def longnote(root: Path, out: Path) -> list[dict]:
     """One 20 s A2 note per take. On the pitch, brightness and even-harmonic
-    tracks, every spectral peak 0.15-18 Hz that stands 8 times above the
+    tracks, every spectral peak 0.25-18 Hz that stands 8 times above the
     median and moves both channels in phase, with its swing (a weaker one
     only above a tenth of the strongest and 0.25 Hz from it, clear of the
-    window's sidelobes); each is named
-    by its nearest note value at the take's tempo and checked against the
-    harmonics of the chorus LFO (within 0.02 Hz: the chorus, not an LFO).
-    The 20 s note resolves about 0.05 Hz, so the band excluded around the
-    chorus lines shrinks to 0.1 Hz. For a sound recorded at two tempos, a
-    rate that scales by the tempo ratio follows the tempo; one that stays put
-    is fixed. Stepped (sample-and-hold) brightness is checked when nothing
-    periodic is found."""
-    rows = []
+    window's sidelobes); each is named by its nearest note value at the
+    take's tempo and checked against the harmonics of the chorus LFO,
+    measured on the same note (within 0.015 Hz plus 0.002 Hz per harmonic:
+    the chorus, not an LFO). The 20 s note resolves about 0.05 Hz, so the
+    band excluded around the chorus lines shrinks to 0.1 Hz. Stepped
+    (sample-and-hold) brightness is checked when nothing periodic is found,
+    and audio-rate components below the note are listed (for those, the
+    prominence column holds their level in dB against the strongest
+    component).
+    For a sound recorded at two tempos, each modulation found at one tempo
+    is looked for in the other take at the rate scaled by the tempo ratio
+    and at the same rate: the taller peak (8 times the median at least, and
+    twice the other) says whether it follows the tempo or is fixed; a
+    candidate rate on a harmonic of that take's chorus LFO counts for
+    nothing (the peak found within 0.02 Hz of one)."""
+    rows, takes_by = [], {}
     for tk in takes(root / "longnote"):
         lab = sound_of(tk)
         bpm = float(tk.meta["prm"].get("TEMPO", 10000)) / 100
@@ -793,16 +917,16 @@ def longnote(root: Path, out: Path) -> None:
             continue
         ch = A.chorus(tk, 0.3, end).get("chorus", "on")
         clfo = measured_chorus_lfo(tk, 0.3, end, ch)
-        tr = A.track(tk, 0.1, end, A.A2)
+        series = mod_series(tk, end)
+        takes_by[(lab, bpm)] = (tk, end, series, clfo)
         found = []
-        for col, kind, least in ((0, "vibrato", 6.0), (1, "filter LFO", 0.1), (2, "PWM", 0.05)):
-            left, right = A._clean(tr[:, 0, col]), A._clean(tr[:, 1, col])
-            if left is None or right is None:
+        for kind, least in (("vibrato", 6.0), ("filter LFO", 0.1), ("PWM", 0.05)):
+            if series[kind] is None:
                 continue
-            mean = (left + right) / 2
+            left, right, mean = series[kind]
             spec = np.abs(np.fft.rfft(mean * np.hanning(len(mean)), 1 << 16))
             f = np.fft.rfftfreq(1 << 16, 0.01)
-            sel = np.flatnonzero((f > 0.15) & (f < 18))
+            sel = np.flatnonzero((f > 0.25) & (f < 18))   # 5 cycles in 20 s at least
             base = max(np.median(spec[sel]), 1e-12)
             peaks = [i for i in sel[1:-1] if spec[i] >= spec[i - 1] and spec[i] >= spec[i + 1] and spec[i] / base >= 8]
             peaks = sorted(peaks, key=lambda i: -spec[i])
@@ -819,17 +943,22 @@ def longnote(root: Path, out: Path) -> None:
                 if swing <= least:
                     continue
                 kept.append(i)
-                # refine the rate: parabola through the log spectrum around the peak
                 y0, y1, y2 = np.log(spec[i - 1: i + 2])
                 fr = f[i] + 0.5 * (y0 - y2) / (y0 - 2 * y1 + y2) * (f[1] - f[0])
                 found.append((kind, fr, spec[i] / base, swing))
                 if len(kept) == 3:
                     break
-        t, d = jumps(tk, 0.2, end) if not found else (None, None)
-        if d is not None:
-            rate, prom = averaged_peak_rate([d], [n * c for c in clfo for n in range(1, 25)], fmax=9.5)
-            if prom >= 6 and A.note_value(rate, bpm):
-                found.append(("stepped brightness", rate, prom, None))
+        if not any(not describe_rate(fr, bpm, clfo)[2] for _, fr, _, _ in found):
+            t, d = jumps(tk, 0.2, end)
+            if d is not None:
+                # threshold set above the 7-10.5 that chorus leakage and a slow
+                # filter LFO reach on the closing pass's sounds, none of which
+                # has a sample and hold
+                rate, prom = averaged_peak_rate([d], [n * c for c in clfo for n in range(1, 25)], fmax=9.5, guard=0.05)
+                if prom >= 12 and A.note_value(rate, bpm):
+                    found.append(("stepped brightness", rate, prom, None))
+        for fr, level in audio_components(tk, 2.0, end, A.A2):
+            found.append(("audio-rate component", fr, level, None))
         if not found:
             rows.append({"sound": lab, "tempo_bpm": bpm, "chorus": ch, "measurement": None})
             print(f"  {lab} at {bpm:g} BPM (chorus {ch}): no modulation")
@@ -837,35 +966,73 @@ def longnote(root: Path, out: Path) -> None:
         parts = []
         for kind, fr, prom, swing in found:
             name, dev, harm = describe_rate(fr, bpm, clfo)
+            if kind == "audio-rate component":
+                harm = ""
             rows.append({"sound": lab, "tempo_bpm": bpm, "chorus": ch,
                          "chorus_lfo_hz": "/".join(f"{c:.4f}" for c in clfo), "measurement": kind,
                          "rate_hz": r(fr, 3), "prominence": r(prom, 1), "swing": r(swing, 3),
                          "nearest_note_value": name, "deviation_pct": r(dev, 1), "chorus_harmonic": harm})
             parts.append(f"{kind} {fr:.3f} Hz ({name} {dev:+.1f} %{', chorus ' + harm if harm else ''})")
         print(f"  {lab} at {bpm:g} BPM (chorus {ch}, LFO {'/'.join(f'{c:.3f}' for c in clfo)} Hz): " + "; ".join(parts))
-    # the same modulation at two tempos
-    for lab in dict.fromkeys(row["sound"] for row in rows):
-        mine = [row for row in rows if row["sound"] == lab and row.get("rate_hz") and not row["chorus_harmonic"]]
-        tempos = sorted({row["tempo_bpm"] for row in mine})
-        if len(tempos) < 2:
+    # each modulation looked for at the other tempo
+    for row in rows:
+        if not row.get("rate_hz") or row["chorus_harmonic"] or row["measurement"] in ("stepped brightness",):
             continue
-        lo, hi = tempos[0], tempos[-1]
-        for a in [row for row in mine if row["tempo_bpm"] == hi]:
-            for b in [row for row in mine if row["tempo_bpm"] == lo and row["measurement"] == a["measurement"]]:
-                q = b["rate_hz"] / a["rate_hz"]
-                if abs(q / (lo / hi) - 1) < 0.02:
-                    verdict = "follows the tempo"
-                elif abs(q - 1) < 0.02:
-                    verdict = "fixed rate"
-                else:
+        lab, bpm = row["sound"], row["tempo_bpm"]
+        for (lab2, bpm2), (tk2, end2, series2, clfo2) in takes_by.items():
+            if lab2 != lab or bpm2 == bpm:
+                continue
+            synced, fixed = row["rate_hz"] * bpm2 / bpm, row["rate_hz"]
+            if row["measurement"] == "audio-rate component":
+                comps = audio_components(tk2, 2.0, end2, A.A2)
+                hs = [any(abs(c - g) < 0.1 for c, _ in comps) for g in (synced, fixed)]
+                verdict = ("follows the tempo" if hs[0] and not hs[1] else "fixed rate" if hs[1] and not hs[0]
+                           else "unclear")
+                detail = f"component at {synced:.3f} Hz: {'yes' if hs[0] else 'no'}, at {fixed:.3f} Hz: {'yes' if hs[1] else 'no'}"
+            else:
+                if series2.get(row["measurement"]) is None:
                     continue
-                print(f"  {lab} {a['measurement']}: {a['rate_hz']:.3f} Hz at {hi:g} BPM, {b['rate_hz']:.3f} Hz at "
-                      f"{lo:g} BPM (ratio {q:.3f}, tempo ratio {lo / hi:.3f}): {verdict}")
-                a["tempo_test"] = b["tempo_test"] = verdict
+                m2 = series2[row["measurement"]][2]
+                (h_s, f_s), (h_f, f_f) = peak_height(m2, synced), peak_height(m2, fixed)
+                # a peak found on a harmonic of the other take's chorus LFO is the chorus
+                on_chorus = [any(abs(g - n * c) < 0.02 for c in clfo2 for n in range(1, 25)) for g in (f_s, f_f)]
+                h_s, h_f = (0.0 if on_chorus[0] else h_s), (0.0 if on_chorus[1] else h_f)
+                verdict = ("follows the tempo" if h_s >= 8 and h_s >= 2 * h_f else
+                           "fixed rate" if h_f >= 8 and h_f >= 2 * h_s else "unclear")
+                detail = (f"peak {h_s:.0f} at {f_s:.3f} Hz (tempo-scaled{', on a chorus harmonic' if on_chorus[0] else ''}), "
+                          f"{h_f:.0f} at {f_f:.3f} Hz (unchanged{', on a chorus harmonic' if on_chorus[1] else ''})")
+            row[f"at_{bpm2:g}_bpm"] = verdict
+            print(f"  {lab} {row['measurement']} {row['rate_hz']:.3f} Hz at {bpm:g} BPM, looked for at {bpm2:g} BPM: "
+                  f"{detail} -> {verdict}")
     write(out / "longnote.csv", rows)
+    return rows
 
 
 # ---------------------------------------------------------------- chord
+def which_reset(out: Path, lab: str, kind: str, f: float, notes, phases):
+    """For a shared vibrato on a sound whose LFO restarts with each note
+    (keysync), the note-on that restarted it: the single notes give the
+    phase the LFO has against its note-on, which predicts the chord's phase
+    if note k restarted it. Frames: keysync phases refer to frame centres,
+    chord frames start 0.05 s before theirs."""
+    ks = out / "keysync_notes.csv"
+    if kind != "pitch" or not ks.exists():
+        return None
+    th = [math.radians(float(row["phase_re_note_on_deg"])) for row in csv.DictReader(open(ks))
+          if row["sound"] == lab and row["measurement"] == "vibrato" and abs(float(row["rate_hz"]) - f) < 0.02]
+    if len(th) < 3 or concentration(th) < 0.8:
+        return None    # not a restarting LFO, or no single-note data
+    mean = float(np.angle(np.mean(np.exp(1j * np.array(th)))))
+    shared = float(np.angle(np.mean(np.exp(1j * np.array(phases)))))
+    dist = []
+    for e in notes:
+        pred = mean + 2 * np.pi * f * (e["on"] - 0.05)
+        dist.append(abs((math.degrees(shared - pred) + 180) % 360 - 180))
+    k = int(np.argmin(dist))
+    return (f"the phase is the one note {k + 1} (onset {notes[k]['on']} s) gives on its own, within {dist[k]:.0f} deg "
+            f"(others {', '.join(f'{d:.0f}' for i, d in enumerate(dist) if i != k)} deg)")
+
+
 def chord(root: Path, out: Path) -> None:
     """Four notes (A2, D3, F#3, B3) entering at 0, 0.25, 0.51 and 1.05 s and
     held together. Each note's level is read on its own fundamental and 2nd
@@ -876,7 +1043,10 @@ def chord(root: Path, out: Path) -> None:
     If the voices share one LFO, the four phases agree against the clock; if
     each voice's LFO starts at its note-on, they agree against each note's
     onset. The onsets are spread so that the two predictions differ
-    (concentration at most 0.46 for note values above 1 Hz at 100 BPM)."""
+    (concentration at most 0.46 for note values above 1 Hz at 100 BPM). The
+    chorus acts on the mix and is common to all voices: a rate that is no
+    note value and lies within the window's resolution (1 / 6.9 s) of one of
+    its harmonics is inconclusive."""
     rows, summary = [], []
     for tk in takes(root / "chord"):
         lab = sound_of(tk)
@@ -909,13 +1079,17 @@ def chord(root: Path, out: Path) -> None:
                     pos += (freqs[j] + dj * (freqs[1] - freqs[0])) / h / 2
                 lv[i, k] = 10 * math.log10(tot + 1e-24)
                 fq[i, k] = 1200 * math.log2(pos / f0)
-        ch, exclude = chorus_exclusion(root, tk, notes)
+        ch, _ = chorus_exclusion(root, tk, notes)
+        # the chorus acts on the mix, so its sweep is common to all voices:
+        # every harmonic of its LFO, measured on the chord, is left out
+        clfo = measured_chorus_lfo(tk, a, b, ch)
+        exclude = [n * c for c in clfo for n in range(1, 25)]
         best = None
         for kind, data in (("level", lv), ("pitch", fq)):
             series = [A._clean(data[:, k]) for k in range(len(notes))]
             if any(sv is None for sv in series):
                 continue
-            rate, prom = averaged_peak_rate(series, exclude, fmin=0.5, fmax=15)
+            rate, prom = averaged_peak_rate(series, exclude, fmin=0.5, fmax=15, guard=0.05)
             if best is None or prom > best[2]:
                 best = (kind, rate, prom, series)
         if best is None or best[2] < 4:
@@ -941,12 +1115,20 @@ def chord(root: Path, out: Path) -> None:
                          "phase_re_clock_deg": r(math.degrees(theta) % 360, 0),
                          "phase_re_note_on_deg": r(math.degrees(rel[-1]) % 360, 0)})
         r_clock, r_note = concentration(big), concentration(rel)
-        if r_clock >= 0.9 and r_clock - r_note >= 0.3:
+        # a rate on a note value is the tempo-synced LFO; another one within
+        # the resolution of a chorus harmonic may be the chorus
+        near = [] if f != rate else [f"{n} x {c:.3f}" for c in clfo for n in range(1, 25) if abs(f - n * c) < 1 / (b - a)]
+        if near:
+            verdict = f"inconclusive: chorus harmonic {near[0]} Hz within the resolution"
+        elif r_clock >= 0.9 and r_clock - r_note >= 0.3:
             verdict = "voices share one LFO phase"
         elif r_note >= 0.9 and r_note - r_clock >= 0.3:
             verdict = "each voice's LFO starts at its note-on"
         else:
             verdict = "unclear"
+        reset = which_reset(out, lab, kind, f, notes, big) if verdict == "voices share one LFO phase" else None
+        if reset:
+            verdict += f"; {reset}"
         summary.append({"sound": lab, "measurement": kind, "rate_hz": r(f, 3), "prominence": r(prom, 1),
                         "concentration_re_clock": r(r_clock, 2), "concentration_re_note_on": r(r_note, 2),
                         "verdict": verdict})
@@ -964,9 +1146,14 @@ def main() -> None:
     root, out = Path(args.captures), Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
     found = False
+    known = []   # the long notes' modulations, for keysync2
+
+    def run_longnote(a, b):
+        known.extend(longnote(a, b))
+
     for name, fn in (("tempo150", tempo), ("velocity", velocity), ("poly", poly), ("sweep", sweep),
                      ("keysync", keysync), ("filters", filters), ("longtail", longtail),
-                     ("longnote", longnote), ("keysync2", lambda a, b: keysync(a, b, "keysync2")),
+                     ("longnote", run_longnote), ("keysync2", lambda a, b: keysync(a, b, "keysync2", known)),
                      ("chord", chord)):
         if (root / name).is_dir():
             found = True

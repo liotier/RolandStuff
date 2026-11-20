@@ -253,12 +253,17 @@ Findings that hold across the 64 sounds:
   level is proportional to velocity squared (exponent 2.00 from 8 to 127, see
   Experiments). It does not change the brightness.
 - Glide is polyphonic: each voice glides from the last pitch it played.
-- The LFOs follow the pattern tempo. Measured across seven notes, the
-  rates of 27 sounds' LFOs fall within 0.1 % of a note value at 100 BPM, from
-  a whole-note triplet (0.625 Hz) to a thirty-second (13.33 Hz), and at
-  150 BPM they run 1.5 times faster (see Experiments). Their delays do not
-  follow the tempo. Most LFOs run freely; three restart with each note. The
-  chorus is free-running.
+- The LFOs follow the pattern tempo. Measured across several notes, every
+  LFO rate falls within 0.1 % of a note value at 100 BPM, from a whole-note
+  triplet (0.625 Hz) to a thirty-second (13.33 Hz), and 6-3's filter LFO
+  runs at a 1/128 note (53.3 Hz), in the audio range. At 150 and at 60 BPM
+  they scale with the tempo (see Experiments). Their delays do not follow the
+  tempo.
+- Each sound has one LFO, shared by its voices. Of 38 sounds tested, 31 LFOs
+  run freely and 5 restart when a note starts from silence (5-6, 5-8, 6-3,
+  8-8 and 8-7's sample and hold); 8-2 and 5-5 have none. The chorus is
+  free-running: its LFO runs at 0.543 Hz (chorus I) and 0.879 Hz
+  (chorus II).
 - LFO rates of 3.17, 2.53 and 0.53 Hz in `measurements.csv` are artifacts:
   the analysis ignores a band of 0.35 Hz around each chorus harmonic, and an
   LFO inside such a band reads at its edge. The true rates (3.33, 2.5, 0.556
@@ -349,13 +354,46 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
   note-on (at most 0.41). Three restart with each note (1.00 against the
   note-on, at most 0.46 against the clock): 5-6 (4.44 Hz, vibrato, filter and
   PWM together), 8-8 (13.33 Hz; the same rate on A2 and A4, so an LFO and not
-  a beat between detuned oscillators) and 8-7's sample and hold. 5-3, 6-3
-  (6.81 Hz, not a note value) and 8-2 are unclear. The free-running rates sit
-  within 0.1 % of a note value; 7-8 and 8-4 run at 0.625 Hz, a whole-note
-  triplet. A delay fades the depth in with each note while the phase runs on.
-  The PWM at 4.40 Hz on 7-7 is the 5th harmonic of the chorus II LFO
-  (0.88 Hz), and 2-6's 7.5 Hz pitch modulation the 3rd harmonic of its 2.5 Hz
-  LFO.
+  a beat between detuned oscillators) and 8-7's sample and hold. 5-3, 6-3 and
+  8-2 were unclear, and the closing pass settles them (below). The
+  free-running rates sit within 0.1 % of a note value; 7-8 and 8-4 run at
+  0.625 Hz, a whole-note triplet. A delay fades the depth in with each note
+  while the phase runs on. The PWM at 4.40 Hz on 7-7 is the 5th harmonic of
+  the chorus II LFO (0.879 Hz), and 2-6's 7.5 Hz pitch modulation the 3rd
+  harmonic of its 2.5 Hz LFO.
+- **Closing pass** (`longnote`, `keysync2`, `chord`; `results/longnote.csv`,
+  `keysync2.csv`, `chord.csv`). Each long note is looked for at the other
+  tempo at the rate scaled by the tempo ratio and at the same rate:
+  - 8-8 runs at 8.00 Hz at 60 BPM, 9.33 Hz at 70 BPM and 13.33 Hz at
+    100 BPM, a 1/32 at every tempo, and restarts with each note at all three
+    (concentration 1.00 against the note-on).
+  - 6-3, "Square Ring Mod" in the spreadsheet, whose filter LFO rate it marks
+    "Max": its strongest component is a modulation at 53.32 Hz at 100 BPM and
+    31.99 Hz at 60 BPM, 32 cycles per beat (a 1/128 note), restarting with
+    each note. The 6.81 Hz "LFO" read earlier is a beat between its products
+    and the note's harmonics, and vanishes at 60 BPM.
+  - 5-3 has a 1/2 LFO on pulse width and filter (0.833 Hz, 0.500 Hz at
+    60 BPM), free-running; its earlier 2.59 and 4.3 Hz readings were chorus
+    products. 3-6 (filter, 1/4, 1.667 Hz), 8-3 (filter, 1/2, 0.833 Hz) and
+    7-2 (a 6-cent vibrato at 1/4T, 2.5 Hz, which the spreadsheet does not
+    list, with pulse width at twice the rate) run freely. 5-8 (filter, 1/2.,
+    0.556 Hz) restarts with each note. All follow the tempo at 60 BPM.
+  - 8-2 and 5-5 show nothing but harmonics of the chorus LFO between 0.25
+    and 18 Hz, on 20 s notes at two tempos, and no audio-rate component: no
+    LFO, against the spreadsheet's "VCF LFO High". On 5-5, a noisy lead, a
+    random filter movement would be hard to tell from its noise with these
+    measurements; one slower than 0.25 Hz on 8-2 would need longer notes.
+  - One LFO per sound, shared by its voices: with four notes entering
+    0-1.05 s apart and held together, the voices' vibrato phases agree
+    (concentration 1.00) on 6-5 (free-running) and 5-6 (restarting). On 5-6
+    the shared phase is the one the first note alone gives, within 4 degrees
+    (44-116 degrees off for the others): the LFO restarts when a note starts
+    from silence, not when notes join held ones. On 5-3, 6-3 and 8-2 the
+    chord test is inconclusive: the strongest common modulation sits within
+    the window's resolution of a chorus harmonic.
+  - The sample-and-hold check in `longnote` uses a threshold (12 times the
+    median) set after seeing that chorus leakage and a slow filter LFO reach
+    7-10.5 on these sounds, none of which has a sample and hold.
 - **Velocity.** On 1-3, 2-7, 4-4 and 6-8, level follows velocity squared:
   exponent 1.99-2.02, 48 dB from velocity 8 to 127. Brightness shows no trend
   (the scatter on 2-7 and 4-4 is their chorus and LFO caught at different

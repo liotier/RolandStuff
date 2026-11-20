@@ -30,6 +30,23 @@ if (res_dir / "keysync.csv").exists():
         old = keysync.get(r["sound"])
         if old is None or rank[r["verdict"]] < rank[old["verdict"]]:
             keysync[r["sound"]] = r
+# The closing pass (keysync2) settles sounds keysync left unclear: its
+# decisive verdicts replace those, at 100 BPM when there is one.
+if (res_dir / "keysync2.csv").exists():
+    decisive = ("restarts with each note", "free-running")
+    for r in csv.DictReader(open(res_dir / "keysync2.csv")):
+        old = keysync.get(r["sound"])
+        if r["verdict"] in decisive and (old is None or old["verdict"] not in decisive
+                                         or (old.get("tempo_bpm") not in ("100", "100.0") and r["tempo_bpm"] == "100.0")):
+            keysync[r["sound"]] = r
+# Sounds whose long notes show nothing but chorus harmonics have no LFO
+if (res_dir / "longnote.csv").exists():
+    ln = list(csv.DictReader(open(res_dir / "longnote.csv")))
+    for lab in {r["sound"] for r in ln}:
+        mine = [r for r in ln if r["sound"] == lab]
+        if all(not r["measurement"] or r["chorus_harmonic"] for r in mine):
+            keysync[lab] = {"sound": lab, "verdict": "no LFO: chorus harmonics only (0.25-18 Hz, 20 s notes)",
+                            "rate_hz": "", "nearest_note_value": ""}
 if (res_dir / "filters_summary.csv").exists():
     ftrack = {r["sound"]: r for r in csv.DictReader(open(res_dir / "filters_summary.csv"))}
 harv = {r["sound"]: r for r in csv.DictReader(open(defaults_csv))}
@@ -93,7 +110,7 @@ cols = [  # (header, source, key, number format, width, comment)
     ("Delay (sheet)", "sheet", "delay", None, 8, None),
     ("LFO delay (s)", "lfodelay", None, "0.00", 9, "Longest of the vibrato, filter LFO and PWM delays: time from the note-on until the modulation reaches half the depth it has later in the note. Delays shorter than one LFO cycle read 0; a strong onset transient in the same measurement (a filter envelope sweep) can hide a delay. Empty when no LFO was detected."),
     ("Delay agree", "f_delay", None, None, 9, None),
-    ("LFO phase at note-on", "ks_verdict", None, None, 14, "From seven A2 notes at irregular spacing (keysync experiment, sounds with an LFO that sustain): 'restarts with each note' when the LFO's phase is the same at every note-on, 'free-running' when it is the same against the clock. Empty: not tested."),
+    ("LFO phase at note-on", "ks_verdict", None, None, 14, "From seven or eight A2 notes at irregular spacing (keysync and closing experiments, sounds with an LFO that sustain): 'restarts with each note' when the LFO's phase is the same at every note-on, 'free-running' when it is the same against the clock. 'no LFO' when a 20 s note shows only harmonics of the chorus LFO. Empty: not tested."),
     ("LFO rate across notes (Hz)", "ks_rate", None, "0.000", 10, "Rate at which the seven notes' phases agree, to about 0.1 %: the LFO's exact rate. Where it differs from the rate columns, those sit at the edge of a band excluded around the chorus (see LFO flags)."),
     ("LFO note value", "ks_note", None, None, 8, "Nearest note value at the pattern tempo (100 BPM; 8-7 tested at 150 BPM)."),
     ("LFO flags", "meas", "lfo_flags", None, 28, "The chorus LFO (about 0.545 Hz for I, 0.88 Hz for II) is free-running and shows at its harmonics. Detections on one of them that match no note value were dropped; those listed here match a note value and are kept."),
@@ -257,7 +274,10 @@ lines = [
     ("", False),
     ("Further experiments (results/*.csv in the repository)", True),
     ("Sample and hold: 8-7's random filter steps come at 4.44 Hz at 100 BPM and 6.67 Hz at 150 BPM, a dotted sixteenth at both: the S&H clock follows the tempo, and it restarts with each note.", False),
-    ("LFO phase (keysync): of 33 sounds whose LFO was found on seven A2 notes at irregular spacing, 27 run freely (the phase agrees against the clock, not against the note-on: concentration 0.92-1.00 against at most 0.41), and 3 restart with each note (concentration 1.00 against the note-on, at most 0.46 against the clock): 5-6 (4.44 Hz), 8-8 (13.33 Hz, the same rate at A2 and A4, so an LFO, not a beat between detuned oscillators) and 8-7's sample and hold. The delays fade the depth in per note while the phase runs on. 5-3, 6-3 and 8-2 are unclear. 2-6 also shows a free-running 7.5 Hz pitch modulation, the 3rd harmonic of its 2.5 Hz LFO. The PWM at 4.40 Hz on 7-7 is the 5th harmonic of the chorus II LFO (0.88 Hz), free-running, not an LFO.", False),
+    ("LFO phase (keysync and closing experiments, 38 sounds, seven or eight A2 notes at irregular spacing): 31 LFOs run freely (the phase agrees against the clock, 0.92-1.00, not against the note-on, at most 0.41); 5 restart with each note: 5-6 (4.44 Hz), 5-8 (0.556 Hz), 8-8 (13.33 Hz; 8.00 at 60 BPM and 9.33 at 70 BPM: a 1/32 at every tempo), 8-7's sample and hold, and 6-3's audio-rate modulation; 8-2 and 5-5 show nothing but harmonics of the chorus LFO (0.25-18 Hz): no LFO, against the spreadsheet's 'VCF LFO High'. 7-2 has a small free-running vibrato (6 cents, 1/4T) the spreadsheet does not list. A delay fades the depth in with each note while the phase runs on. The PWM at 4.40 Hz on 7-7 and 8-2 is the 5th harmonic of the chorus II LFO (0.879 Hz), and 2-6's 7.5 Hz pitch modulation the 3rd harmonic of its 2.5 Hz LFO.", False),
+    ("One LFO per sound, shared by the voices (closing experiment, four staggered notes held together): on 6-5 (free-running) and 5-6 (restarting) the four voices' vibrato phases agree (concentration 1.00). On 5-6 the shared phase is the one the first note alone would give, within 4 degrees: the LFO restarts when a note starts from silence, not when notes are added to held ones.", False),
+    ("6-3 'Square Ring Mod': its strongest component is a modulation at 53.32 Hz at 100 BPM and 31.99 Hz at 60 BPM, 32 cycles per beat (a 1/128 note), restarting with each note: the filter LFO at its maximum rate ('Max' in the spreadsheet), in the audio range. The 6.81 Hz 'filter LFO' measured earlier is a beat between its products and the note's harmonics.", False),
+    ("Corrected rates (closing experiment, 20 s notes, checked at 60 BPM): 5-3 0.833 Hz (1/2, PWM and filter), 3-6 1.667 Hz (1/4), 8-3 0.833 Hz (1/2), 5-8 0.556 Hz (1/2.), 7-2 2.5 Hz (1/4T); all follow the tempo. The chorus LFO measures 0.543 Hz (chorus I) and 0.879 Hz (chorus II) on the same notes.", False),
     ("Velocity: level proportional to velocity squared (exponent 2.00, 8 to 127, four sounds); no effect on brightness.", False),
     ("Polyphony: four voices. Of six held notes entering in turn, the 2nd and 3rd are dropped when the 5th and 6th enter; the lowest note keeps sounding.", False),
     ("FILTER (sound 6-8, RESONANCE 255): the resonant peak moves one octave per 14.4 steps below 2 kHz, from about 30 Hz at 85 (A2), flattening towards 13-16 kHz; it follows the keyboard fully (1.00 octave per octave).", False),
