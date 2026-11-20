@@ -409,9 +409,15 @@ FIT_FROM = 1.0   # s after each note-on: past the LFO delays measured (0.9 s at 
 
 
 def phase_fit(t, s, f):
-    """Amplitude and phase lag theta of s ~ A cos(2 pi f t - theta) + c."""
+    """Amplitude and phase lag theta of s ~ A cos(2 pi f t - theta) + c.
+    Below about 1 Hz a note of 3.5 s holds under two cycles, and an
+    envelope that decays into the window projects onto the sinusoid with a
+    phase locked to the note-on: there the test leans towards 'restarts'.
+    Fitting a trend in the window instead was tried and rejected: it
+    absorbs part of such slow LFOs and shifts the choice between aliased
+    rates, without removing the bias."""
     m = np.column_stack([np.cos(2 * np.pi * f * t), np.sin(2 * np.pi * f * t), np.ones_like(t)])
-    (a, b, _), *_ = np.linalg.lstsq(m, s, rcond=None)
+    (a, b, *_), *_ = np.linalg.lstsq(m, s, rcond=None)
     return math.hypot(a, b), math.atan2(b, a)
 
 
@@ -497,7 +503,7 @@ def known_rates(longnote_rows, lab: str, bpm: float) -> list[tuple[str, float]]:
     for row in longnote_rows or []:
         if row["sound"] != lab or not row.get("rate_hz") or row["chorus_harmonic"]:
             continue
-        if row["measurement"] not in ("vibrato", "filter LFO", "PWM", "audio-rate component"):
+        if row["measurement"] not in ("vibrato", "filter LFO", "PWM", "audio-rate component", "stepped brightness"):
             continue
         if row["tempo_bpm"] == bpm:
             f = row["rate_hz"]
@@ -561,6 +567,14 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
             for kind, f in rates:
                 if kind == "audio-rate component":
                     rel, big = audio_phases(tk, notes, f)
+                elif kind == "stepped brightness":
+                    series = []
+                    for e in notes:
+                        t, d = jumps(tk, e["on"] + 0.1, e["off"] - 0.05)
+                        if d is not None:
+                            series.append((e, t - e["on"], d - d.mean()))
+                    ph = note_phases(series, f)
+                    rel, big = [th for _, _, th, _ in ph], [b for _, _, _, b in ph]
                 else:
                     col = {"vibrato": 0, "filter LFO": 1, "PWM": 2}[kind]
                     series = []
@@ -585,6 +599,11 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
                                 "verdict": verdict, "rate_from": "long note"})
                 verdicts.append(f"{kind} {f:.3f} Hz ({name}): {r_note:.2f} against the note-on, "
                                 f"{r_take:.2f} against the take -> {verdict}")
+            mine = [row for row in summary if row["sound"] == lab and row["tempo_bpm"] == bpm]
+            vs = {row["verdict"] for row in mine} & {"restarts with each note", "free-running"}
+            if len(vs) == 2:
+                verdicts.append("CONFLICT: measurements of one LFO disagree (below about 1 Hz an "
+                                "envelope decaying into the note can pose as a restart)")
             print(f"  {lab} at {bpm:g} BPM, rates from the long note: " + "; ".join(verdicts))
             continue
         for col, kind, least in ((0, "vibrato", 6.0), (1, "filter LFO", 0.1), (2, "PWM", 0.05)):
@@ -650,6 +669,7 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
     for lab in dict.fromkeys(row["sound"] for row in summary):
         vs = {row["verdict"] for row in summary if row["sound"] == lab}
         v = (vs.pop() if len(vs) == 1 else
+             "conflicting" if {"restarts with each note", "free-running"} <= vs else
              "restarts with each note" if "restarts with each note" in vs else
              "free-running" if "free-running" in vs else "unclear")
         counts[v] = counts.get(v, 0) + 1
@@ -858,6 +878,42 @@ def mod_series(tk: A.Take, end: float):
     return out
 
 
+def harmonic_fluctuation(tk: A.Take, start: float, end: float, f0: float = 110.0, kmax: int = 12):
+    """Mean RMS (octaves) of the 1-45 Hz level fluctuations of the note's
+    harmonics within 40 dB of the strongest (100 ms frames, 10 ms apart, up
+    to 10 s). Compared between FILTER settings of one sound, what the
+    setting adds is the filter's movement: with the filter open only the
+    source's own fluctuation remains. (Their correlation is no test: a
+    resonant cutoff sweeping across the harmonics moves those above and
+    below it in opposite directions; 8-2's clear filter LFO at FILTER 140
+    gives a mean correlation of 0.13.)"""
+    end = min(end, start + 10.0)
+    n, nfft = int(0.1 * tk.sr), 1 << 15
+    w = np.hanning(n)
+    freqs = np.fft.rfftfreq(nfft, 1 / tk.sr)
+    ts = np.arange(start, end - 0.1, 0.01)
+    h = np.zeros((len(ts), kmax))
+    for i, t in enumerate(ts):
+        seg = tk.seg(t, t + 0.11)[:n]
+        if len(seg) < n:
+            h[i] = h[i - 1] if i else 1e-12
+            continue
+        mag = np.abs(np.fft.rfft(seg * w, nfft))
+        for k in range(1, kmax + 1):
+            h[i, k - 1] = mag[np.abs(freqs - k * f0) < 0.02 * k * f0].max()
+    lvl = 20 * np.log10(np.median(h, axis=0) / np.median(h, axis=0).max())
+    fast = []
+    for k in np.flatnonzero(lvl > -40):
+        x = A._clean(np.log2(h[:, k] + 1e-12))
+        spec = np.fft.rfft(x)
+        f = np.fft.rfftfreq(len(x), 0.01)
+        spec[(f < 1) | (f > 45)] = 0
+        fast.append(np.fft.irfft(spec, len(x)))
+    if len(fast) < 2:
+        return None
+    return float(np.mean(np.std(np.array(fast), axis=1)))
+
+
 def band_rms(x, lo, hi, hop=0.01) -> float:
     """RMS of x within lo-hi Hz (Parseval on the windowless spectrum)."""
     spec = np.fft.rfft(x - np.mean(x))
@@ -908,8 +964,10 @@ def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
     take's tempo and checked against the harmonics of the chorus LFO,
     measured on the same note (within 0.015 Hz plus 0.002 Hz per harmonic:
     the chorus, not an LFO). The 20 s note resolves about 0.05 Hz, so the
-    band excluded around the chorus lines shrinks to 0.1 Hz. Stepped
-    (sample-and-hold) brightness is checked when nothing periodic is found,
+    band excluded around the chorus lines shrinks to 0.1 Hz. When nothing
+    periodic is found, the size of the brightness's frame-to-frame jumps is
+    searched for a periodicity ("stepped brightness"): a sample and hold, or
+    the edges of a square or saw LFO that barely moves the sound otherwise,
     and audio-rate components below the note are listed (for those, the
     prominence column holds their level in dB against the strongest
     component).
@@ -926,7 +984,9 @@ def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
     what differs between them (the chorus acting on noise, estimation
     noise): comparing takes of one sound at different FILTER settings tells
     a filter movement, which vanishes with the filter open, from the noise
-    of the source, which stays (written to FOLDER_jitter.csv)."""
+    of the source, which stays; and the harmonics' own level fluctuation,
+    whose growth from the open setting is the filter's movement (written to
+    FOLDER_jitter.csv)."""
     rows, takes_by, jit = [], {}, []
     for tk in takes(root / folder):
         lab = sound_of(tk)
@@ -949,6 +1009,7 @@ def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
             for lo, hi in ((0.5, 5), (5, 45)):
                 c, d = band_rms((left + right) / 2, lo, hi), band_rms((left - right) / 2, lo, hi)
                 row[f"together_{lo:g}_{hi:g}_oct"], row[f"apart_{lo:g}_{hi:g}_oct"] = r(c, 4), r(d, 4)
+            row["harmonic_fluctuation_oct"] = r(harmonic_fluctuation(tk, 2.0, end), 3)
             jit.append(row)
         found = []
         for kind, least in (("vibrato", 6.0), ("filter LFO", 0.1), ("PWM", 0.05)):
@@ -982,11 +1043,11 @@ def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
         if not any(not describe_rate(fr, bpm, clfo)[2] for _, fr, _, _ in found):
             t, d = jumps(tk, 0.2, end)
             if d is not None:
-                # threshold set above the 7-10.5 that chorus leakage and a slow
-                # filter LFO reach on the closing pass's sounds, none of which
-                # has a sample and hold
+                # steps in brightness: a sample and hold, or the edges of a square
+                # or saw LFO that barely moves the sound otherwise (8-2 at its
+                # nearly open FILTER 251); chorus harmonics within 0.05 Hz left out
                 rate, prom = averaged_peak_rate([d], [n * c for c in clfo for n in range(1, 25)], fmax=9.5, guard=0.05)
-                if prom >= 12 and A.note_value(rate, bpm):
+                if prom >= 6 and A.note_value(rate, bpm):
                     found.append(("stepped brightness", rate, prom, None))
         for fr, level in audio_components(tk, 2.0, end, A.A2):
             found.append(("audio-rate component", fr, level, None))
@@ -1008,7 +1069,7 @@ def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
         print(f"  {tag} (chorus {ch}, LFO {'/'.join(f'{c:.3f}' for c in clfo)} Hz): " + "; ".join(parts))
     # each modulation looked for at the other tempo
     for row in rows:
-        if not row.get("rate_hz") or row["chorus_harmonic"] or row["measurement"] in ("stepped brightness",):
+        if not row.get("rate_hz") or row["chorus_harmonic"]:
             continue
         lab, bpm, knobs = row["sound"], row["tempo_bpm"], (row["FILTER"], row["RESONANCE"])
         for (lab2, bpm2, knobs2), (tk2, end2, series2, clfo2) in takes_by.items():
@@ -1022,10 +1083,15 @@ def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
                            else "unclear")
                 detail = f"component at {synced:.3f} Hz: {'yes' if hs[0] else 'no'}, at {fixed:.3f} Hz: {'yes' if hs[1] else 'no'}"
             else:
-                if series2.get(row["measurement"]) is None:
+                if row["measurement"] == "stepped brightness":
+                    _, m2 = jumps(tk2, 0.2, end2)
+                elif series2.get(row["measurement"]) is not None:
+                    m2 = series2[row["measurement"]][2]
+                else:
                     continue
-                m2 = series2[row["measurement"]][2]
-                (h_s, f_s), (h_f, f_f) = peak_height(m2, synced), peak_height(m2, fixed)
+                if m2 is None:
+                    continue
+                (h_s, f_s), (h_f, f_f) = peak_height(m2 - np.mean(m2), synced), peak_height(m2 - np.mean(m2), fixed)
                 # a peak found on a harmonic of the other take's chorus LFO is the chorus
                 on_chorus = [any(abs(g - n * c) < 0.02 for c in clfo2 for n in range(1, 25)) for g in (f_s, f_f)]
                 h_s, h_f = (0.0 if on_chorus[0] else h_s), (0.0 if on_chorus[1] else h_f)
@@ -1039,7 +1105,8 @@ def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
     for row in jit:
         print(f"  {row['sound']} at {row['tempo_bpm']:g} BPM, FILTER {row['FILTER']} RESONANCE {row['RESONANCE']}: "
               f"brightness jitter 0.5-5 Hz {row['together_0.5_5_oct']:.3f} together / {row['apart_0.5_5_oct']:.3f} apart, "
-              f"5-45 Hz {row['together_5_45_oct']:.3f} / {row['apart_5_45_oct']:.3f} octave rms")
+              f"5-45 Hz {row['together_5_45_oct']:.3f} / {row['apart_5_45_oct']:.3f} octave rms; "
+              f"harmonic levels fluctuate {row['harmonic_fluctuation_oct']} octave rms")
     write(out / f"{folder}.csv", rows)
     write(out / f"{folder}_jitter.csv", jit)
     return rows

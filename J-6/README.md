@@ -259,10 +259,10 @@ Findings that hold across the 64 sounds:
   runs at a 1/128 note (53.3 Hz), in the audio range. At 150 and at 60 BPM
   they scale with the tempo (see Experiments). Their delays do not follow the
   tempo.
-- Each sound has one LFO, shared by its voices. Of 38 sounds tested, 31 LFOs
-  run freely and 5 restart when a note starts from silence (5-6, 5-8, 6-3,
-  8-8 and 8-7's sample and hold); 8-2 and 5-5 have none. The chorus is
-  free-running: its LFO runs at 0.543 Hz (chorus I) and 0.879 Hz
+- Each sound has one LFO, shared by its voices. Of 38 sounds tested, 32 LFOs
+  run freely and 4 restart when a note starts from silence (5-6, 6-3, 8-8
+  and 8-7's sample and hold); 5-8's readings conflict, and 5-5 has none. The
+  chorus is free-running: its LFO runs at 0.543 Hz (chorus I) and 0.879 Hz
   (chorus II).
 - LFO rates of 3.17, 2.53 and 0.53 Hz in `measurements.csv` are artifacts:
   the analysis ignores a band of 0.35 Hz around each chorus harmonic, and an
@@ -378,12 +378,9 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
     products. 3-6 (filter, 1/4, 1.667 Hz), 8-3 (filter, 1/2, 0.833 Hz) and
     7-2 (a 6-cent vibrato at 1/4T, 2.5 Hz, which the spreadsheet does not
     list, with pulse width at twice the rate) run freely. 5-8 (filter, 1/2.,
-    0.556 Hz) restarts with each note. All follow the tempo at 60 BPM.
-  - 8-2 and 5-5 show nothing but harmonics of the chorus LFO between 0.25
-    and 18 Hz, on 20 s notes at two tempos, and no audio-rate component: no
-    LFO, against the spreadsheet's "VCF LFO High". On 5-5, a noisy lead, a
-    random filter movement would be hard to tell from its noise with these
-    measurements; one slower than 0.25 Hz on 8-2 would need longer notes.
+    0.556 Hz) is conflicting (below). All follow the tempo at 60 BPM.
+  - 8-2 and 5-5 showed nothing but harmonics of the chorus LFO between 0.25
+    and 18 Hz on 20 s notes; the final pass settles both (below).
   - One LFO per sound, shared by its voices: with four notes entering
     0-1.05 s apart and held together, the voices' vibrato phases agree
     (concentration 1.00) on 6-5 (free-running) and 5-6 (restarting). On 5-6
@@ -392,9 +389,45 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
     from silence, not when notes join held ones. On 5-3, 6-3 and 8-2 the
     chord test is inconclusive: the strongest common modulation sits within
     the window's resolution of a chorus harmonic.
-  - The sample-and-hold check in `longnote` uses a threshold (12 times the
-    median) set after seeing that chorus leakage and a slow filter LFO reach
-    7-10.5 on these sounds, none of which has a sample and hold.
+- **Final pass** (`verylong`, `longnote2`; `results/verylong*.csv`,
+  `longnote2*.csv`):
+  - 8-2 has an LFO. Its default FILTER is 251, nearly open, so a filter LFO
+    moves a cutoff already above the sound. At FILTER 140 and 100 it shows at
+    once: 1.250 Hz, a 1/2T, on the filter (0.68 octave swing at 140), the
+    pulse width and the pitch reading, with harmonics at 3 and 4 times the
+    rate (not a sine). At FILTER 251 it shows only as small steps in the
+    brightness, 1.251 Hz at 100 BPM and 0.751 Hz at 60 BPM on 90 s notes:
+    it follows the tempo, and on the eight-note takes it runs freely
+    (0.93 and 0.90 against the clock). The spreadsheet's "VCF LFO High",
+    "PWM LFO", rate "Mid" stand. Correction: the closing pass had found the
+    same 1.251 Hz steps at prominence 10.5, and I dismissed them as spurious
+    and raised the step threshold to 12; the threshold is back at 6, and the
+    step measure is described for what it is: steps from a sample and hold
+    or from the edges of a square or saw LFO.
+  - 5-5 has no filter movement that these measurements can find. Its fast
+    brightness jitter shared by both channels grows as the filter narrows
+    (0.020 octave rms with the filter open, 0.029 at FILTER 120, 0.053 at
+    its defaults), but a noise source through a resonant filter does that
+    too. The harmonics decide: their levels fluctuate by 0.52 octave rms
+    (1-45 Hz) with the filter fully open, which is the source and the
+    chorus alone, 0.52 at FILTER 120 and 0.56 at its defaults. The filter
+    adds under a tenth, where on 8-2 revealing the filter LFO raises the
+    same measure from 0.51 (FILTER 251) to 1.33 (FILTER 140). The jitter
+    belongs to the source; a filter movement smaller than about a tenth of
+    it would escape. (A first version of this test used the correlation
+    between harmonics; calibrated on 8-2, a resonant cutoff sweeping across
+    them moves those above and below it in opposite directions, so a clear
+    filter LFO gave only 0.13: correlation proves nothing here.)
+  - 5-8 stays conflicting. Its LFO (1/2., 0.556 Hz, following the tempo)
+    shows as sharp dips at clock-locked times (steps: 0.91 against the
+    clock), while its brightness level reads "restarts" (0.93 against the
+    note-on). The level reading is suspect: the sound's filter envelope
+    spikes +0.9 octave at each note-on and decays within 0.6 s, and at
+    under two LFO cycles per 3.5 s note such an envelope can pose as a
+    restarting LFO. Fitting a trend inside the window did not remove the
+    bias and blurred other slow LFOs, so the analysis keeps its plain fit
+    and reports the conflict. Probably free-running; a test with longer
+    separate notes would settle it.
 - **Velocity.** On 1-3, 2-7, 4-4 and 6-8, level follows velocity squared:
   exponent 1.99-2.02, 48 dB from velocity 8 to 127. Brightness shows no trend
   (the scatter on 2-7 and 4-4 is their chorus and LFO caught at different

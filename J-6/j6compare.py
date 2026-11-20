@@ -39,6 +39,14 @@ if (res_dir / "keysync2.csv").exists():
         if r["verdict"] in decisive and (old is None or old["verdict"] not in decisive
                                          or (old.get("tempo_bpm") not in ("100", "100.0") and r["tempo_bpm"] == "100.0")):
             keysync[r["sound"]] = r
+    # two measurements of one sound's LFO that disagree are reported as such
+    rows2 = list(csv.DictReader(open(res_dir / "keysync2.csv")))
+    for lab in {r["sound"] for r in rows2}:
+        for bpm in {r["tempo_bpm"] for r in rows2 if r["sound"] == lab}:
+            mine = [r for r in rows2 if r["sound"] == lab and r["tempo_bpm"] == bpm and r["verdict"] in decisive]
+            if len({r["verdict"] for r in mine}) == 2:
+                keysync[lab] = dict(mine[0], verdict="conflicting: " + "; ".join(
+                    f"{r['measurement']} {r['verdict']}" for r in mine))
 # Sounds whose long notes show nothing but chorus harmonics have no LFO
 if (res_dir / "longnote.csv").exists():
     ln = list(csv.DictReader(open(res_dir / "longnote.csv")))
@@ -168,10 +176,10 @@ for r_i, lab in enumerate(order, 2):
         elif kind == "ks_verdict": cell.value = keysync[lab]["verdict"] if lab in keysync else None
         elif kind == "ks_rate":
             ks = keysync.get(lab)
-            cell.value = num(ks["rate_hz"]) if ks and ks["verdict"] in ("free-running", "restarts with each note") else None
+            cell.value = num(ks["rate_hz"]) if ks and ks["verdict"].startswith(("free-running", "restarts", "conflicting")) else None
         elif kind == "ks_note":
             ks = keysync.get(lab)
-            cell.value = ks["nearest_note_value"] if ks and ks["verdict"] in ("free-running", "restarts with each note") else None
+            cell.value = ks["nearest_note_value"] if ks and ks["verdict"].startswith(("free-running", "restarts", "conflicting")) else None
         elif kind == "ftrack": cell.value = num(ftrack[lab]["key_tracking"]) if lab in ftrack else None
         elif kind == "lfodelay":
             ds = [num(m.get(f"{k}_delay_s")) for k in ("vibrato", "filter_lfo", "pwm")]
@@ -274,7 +282,7 @@ lines = [
     ("", False),
     ("Further experiments (results/*.csv in the repository)", True),
     ("Sample and hold: 8-7's random filter steps come at 4.44 Hz at 100 BPM and 6.67 Hz at 150 BPM, a dotted sixteenth at both: the S&H clock follows the tempo, and it restarts with each note.", False),
-    ("LFO phase (keysync and closing experiments, 38 sounds, seven or eight A2 notes at irregular spacing): 31 LFOs run freely (the phase agrees against the clock, 0.92-1.00, not against the note-on, at most 0.41); 5 restart with each note: 5-6 (4.44 Hz), 5-8 (0.556 Hz), 8-8 (13.33 Hz; 8.00 at 60 BPM and 9.33 at 70 BPM: a 1/32 at every tempo), 8-7's sample and hold, and 6-3's audio-rate modulation; 8-2 and 5-5 show nothing but harmonics of the chorus LFO (0.25-18 Hz): no LFO, against the spreadsheet's 'VCF LFO High'. 7-2 has a small free-running vibrato (6 cents, 1/4T) the spreadsheet does not list. A delay fades the depth in with each note while the phase runs on. The PWM at 4.40 Hz on 7-7 and 8-2 is the 5th harmonic of the chorus II LFO (0.879 Hz), and 2-6's 7.5 Hz pitch modulation the 3rd harmonic of its 2.5 Hz LFO.", False),
+    ("LFO phase (keysync, closing and final experiments, 38 sounds, seven or eight A2 notes at irregular spacing): 32 LFOs run freely (the phase agrees against the clock, 0.90-1.00, not against the note-on); 4 restart with each note: 5-6 (4.44 Hz), 8-8 (13.33 Hz; 8.00 at 60 BPM and 9.33 at 70 BPM: a 1/32 at every tempo), 8-7's sample and hold, and 6-3's audio-rate modulation. 5-8 (0.556 Hz) is conflicting: its steps say free-running, its brightness level 'restarts', a reading its filter envelope can fake at under two cycles per note. 8-2's LFO (1/2T, 1.25 Hz) is hidden by its nearly open default FILTER 251: it shows at FILTER 140 and 100, and as small steps on 90 s notes at 251; it runs freely and follows the tempo. 5-5 shows nothing but harmonics of the chorus LFO, and its harmonics fluctuate 0.52 octave rms with the filter fully open against 0.56 at its defaults (8-2: 0.51 at FILTER 251, 1.33 at 140 once its LFO shows): the jitter is the source's, any filter movement under a tenth of it. 7-2 has a small free-running vibrato (6 cents, 1/4T) the spreadsheet does not list. A delay fades the depth in with each note while the phase runs on. The PWM at 4.40 Hz on 7-7 and 8-2 is the 5th harmonic of the chorus II LFO (0.879 Hz), and 2-6's 7.5 Hz pitch modulation the 3rd harmonic of its 2.5 Hz LFO.", False),
     ("One LFO per sound, shared by the voices (closing experiment, four staggered notes held together): on 6-5 (free-running) and 5-6 (restarting) the four voices' vibrato phases agree (concentration 1.00). On 5-6 the shared phase is the one the first note alone would give, within 4 degrees: the LFO restarts when a note starts from silence, not when notes are added to held ones.", False),
     ("6-3 'Square Ring Mod': its strongest component is a modulation at 53.32 Hz at 100 BPM and 31.99 Hz at 60 BPM, 32 cycles per beat (a 1/128 note), restarting with each note: the filter LFO at its maximum rate ('Max' in the spreadsheet), in the audio range. The 6.81 Hz 'filter LFO' measured earlier is a beat between its products and the note's harmonics.", False),
     ("Corrected rates (closing experiment, 20 s notes, checked at 60 BPM): 5-3 0.833 Hz (1/2, PWM and filter), 3-6 1.667 Hz (1/4), 8-3 0.833 Hz (1/2), 5-8 0.556 Hz (1/2.), 7-2 2.5 Hz (1/4T); all follow the tempo. The chorus LFO measures 0.543 Hz (chorus I) and 0.879 Hz (chorus II) on the same notes.", False),

@@ -143,6 +143,22 @@ sound,tempo_bpm,measurement,rate_hz,note,onset_s,phase_re_note_on_deg,phase_re_t
 6-3,60.0,PWM,3.855,retrig_5,24.67,43.0,80.0
 6-3,60.0,PWM,3.855,retrig_6,30.15,55.0,137.0
 6-3,60.0,PWM,3.855,retrig_7,35.79,180.0,169.0
+8-2,100.0,stepped brightness,1.25,retrig_0,0.0,174.0,174.0
+8-2,100.0,stepped brightness,1.25,retrig_1,4.33,71.0,220.0
+8-2,100.0,stepped brightness,1.25,retrig_2,9.92,78.0,222.0
+8-2,100.0,stepped brightness,1.25,retrig_3,14.49,167.0,208.0
+8-2,100.0,stepped brightness,1.25,retrig_4,19.08,230.0,176.0
+8-2,100.0,stepped brightness,1.25,retrig_5,24.67,225.0,166.0
+8-2,100.0,stepped brightness,1.25,retrig_6,30.15,282.0,169.0
+8-2,100.0,stepped brightness,1.25,retrig_7,35.79,266.0,171.0
+8-2,60.0,stepped brightness,0.75,retrig_0,0.0,241.0,241.0
+8-2,60.0,stepped brightness,0.75,retrig_1,4.33,98.0,187.0
+8-2,60.0,stepped brightness,0.75,retrig_2,9.92,6.0,164.0
+8-2,60.0,stepped brightness,0.75,retrig_3,14.49,273.0,226.0
+8-2,60.0,stepped brightness,0.75,retrig_4,19.08,84.0,195.0
+8-2,60.0,stepped brightness,0.75,retrig_5,24.67,354.0,175.0
+8-2,60.0,stepped brightness,0.75,retrig_6,30.15,319.0,179.0
+8-2,60.0,stepped brightness,0.75,retrig_7,35.79,280.0,223.0
 3-6,100.0,filter LFO,1.667,retrig_0,0.0,41.0,41.0
 3-6,100.0,filter LFO,1.667,retrig_1,4.33,325.0,43.0
 3-6,100.0,filter LFO,1.667,retrig_2,9.92,244.0,76.0
@@ -159,6 +175,14 @@ sound,tempo_bpm,measurement,rate_hz,note,onset_s,phase_re_note_on_deg,phase_re_t
 3-6,100.0,filter LFO,3.962,retrig_5,24.67,150.0,54.0
 3-6,100.0,filter LFO,3.962,retrig_6,30.15,228.0,28.0
 3-6,100.0,filter LFO,3.962,retrig_7,35.79,40.0,324.0
+5-8,100.0,stepped brightness,0.556,retrig_0,0.0,55.0,55.0
+5-8,100.0,stepped brightness,0.556,retrig_1,4.33,315.0,101.0
+5-8,100.0,stepped brightness,0.556,retrig_2,9.92,220.0,44.0
+5-8,100.0,stepped brightness,0.556,retrig_3,14.49,85.0,103.0
+5-8,100.0,stepped brightness,0.556,retrig_4,19.08,206.0,62.0
+5-8,100.0,stepped brightness,0.556,retrig_5,24.67,207.0,101.0
+5-8,100.0,stepped brightness,0.556,retrig_6,30.15,147.0,57.0
+5-8,100.0,stepped brightness,0.556,retrig_7,35.79,146.0,104.0
 5-8,100.0,filter LFO,0.556,retrig_0,0.0,73.0,73.0
 5-8,100.0,filter LFO,0.556,retrig_1,4.33,69.0,215.0
 5-8,100.0,filter LFO,0.556,retrig_2,9.92,91.0,275.0

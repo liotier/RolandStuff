@@ -17,11 +17,12 @@ sound,tempo_bpm,chorus,measurement,rate_hz,nearest_note_value,deviation_pct,conc
 6-3,100.0,II,audio-rate component,53.333,1/128,0.0,1.0,0.62,restarts with each note,long note
 6-3,60.0,II,audio-rate component,32.0,1/128,0.0,1.0,0.41,restarts with each note,long note
 6-3,60.0,II,PWM,3.855,1/16,-3.6,0.29,0.64,unclear,long note
-8-2,100.0,II,,,,,,,no LFO found,
-8-2,60.0,II,,,,,,,no LFO found,
+8-2,100.0,II,stepped brightness,1.25,1/2T,0.0,0.36,0.93,free-running,long note
+8-2,60.0,II,stepped brightness,0.75,1/2T,0.0,0.36,0.9,free-running,long note
 3-6,100.0,I,filter LFO,1.667,1/4,0.0,0.16,0.92,free-running,long note
 3-6,100.0,I,filter LFO,3.962,1/16.,-10.9,0.26,0.3,unclear,long note
 5-5,100.0,II,,,,,,,no LFO found,
+5-8,100.0,II,stepped brightness,0.556,1/2.,0.0,0.37,0.91,free-running,long note
 5-8,100.0,II,filter LFO,0.556,1/2.,0.0,0.93,0.32,restarts with each note,long note
 7-2,100.0,II,vibrato,2.5,1/4T,0.0,0.19,1.0,free-running,long note
 7-2,100.0,II,PWM,5.0,1/8T,0.0,0.33,0.96,free-running,long note
