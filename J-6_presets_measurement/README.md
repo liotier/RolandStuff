@@ -79,9 +79,9 @@ Where the measurements and the sheet still differ:
   brightness swing at 2.5 Hz could come from the filter or the pulse width.
 - **4-6**, a vibrato ("Mid", with a delay): none found, even below the
   detection threshold.
-- **2-1, 4-5 and 8-7**, chorus II: all three use a third chorus mode, fast
-  (7.57 Hz) and shallow, which the sheet's I, II and off do not provide for:
-  the J-6's counterpart of the JUNO-60's "secret" I+II mode (section 4.5.5).
+- **2-1, 4-5 and 8-7**, chorus II: all three use I+II, the JUNO-60's third
+  chorus mode (both buttons pressed), fast (7.57 Hz) and shallow, which the
+  sheet's I, II and off do not provide for (section 4.5.5).
 - **Pitch movements he does not list** on 7-6, 8-1, 8-3 and 8-4 (10-14 cents)
   and 5-6 (80 cents). They persist with the filter open, so they are not the
   filter's pull on the pitch; on 5-6 the pulse-width modulation alone may
@@ -128,7 +128,7 @@ The same data, one field per attribute for sorting and filtering, is in
 | **1-6** Harpsichord | pulse 30&nbsp;%<br>+1 oct, sub +2&nbsp;dB | Off | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 244&nbsp;ms | pulse width, pitch<br>1/4T (2.5&nbsp;Hz)<br>phase not tested<br>delay 0.55&nbsp;s | 137<br>29<br>0 | measured with ENV 255, where it sustains |
 | **1-7** Chorus Clavinet | pulse 16&nbsp;% | I | 3&nbsp;ms / -10&nbsp;dB / 30&nbsp;ms | pulse width<br>1/4T (2.5&nbsp;Hz)<br>free-running | 0<br>28<br>0 | spreadsheet: pulse width fixed |
 | **1-8** Chorus Harp | square<br>+1 oct, sub, same level | I | 7&nbsp;ms / pluck,<br>-20&nbsp;dB in 1541&nbsp;ms | none | 27<br>33<br>0 |  |
-| **2-1** Staccato Steel Drum | pulse 34&nbsp;%, noise | fast | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 75&nbsp;ms | filter, pulse width<br>1/8 (3.333&nbsp;Hz)<br>phase not tested | 95<br>31<br>0 | 3.330&nbsp;Hz with ENV 255 (first read at 3.17&nbsp;Hz, a chorus band edge); Standing: 1/8th notes |
+| **2-1** Staccato Steel Drum | pulse 34&nbsp;%, noise | I+II | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 75&nbsp;ms | filter, pulse width<br>1/8 (3.333&nbsp;Hz)<br>phase not tested | 95<br>31<br>0 | 3.330&nbsp;Hz with ENV 255 (first read at 3.17&nbsp;Hz, a chorus band edge); Standing: 1/8th notes |
 | **2-2** Bright Detuned Saw Pluck | saw<br>+1 oct, sub +3&nbsp;dB | II | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 688&nbsp;ms | none | 0<br>7<br>0 |  |
 | **2-3** Synthy 80s Clean Guitar | pulse 31&nbsp;%<br>+1 oct, sub -1&nbsp;dB | I | 3&nbsp;ms / pluck,<br>-20&nbsp;dB in 803&nbsp;ms | none | 65<br>120<br>18 |  |
 | **2-4** Gliding Noisy Pluck | pulse 39&nbsp;%, noise<br>+1 oct, sub +2&nbsp;dB | II | 7&nbsp;ms / pluck,<br>-20&nbsp;dB in 334&nbsp;ms<br>glide 15&nbsp;ms | pulse width<br>1/8. (2.222&nbsp;Hz)<br>phase not tested | 110<br>179<br>38 | measured with ENV 255 |
@@ -148,7 +148,7 @@ The same data, one field per attribute for sorting and filtering, is in
 | **4-2** Gliding Pulse Lead I | pulse 42&nbsp;%<br>+1 oct, sub +5&nbsp;dB | I | 15&nbsp;ms / -1&nbsp;dB / 6&nbsp;ms<br>glide 15&nbsp;ms | none | 110<br>170<br>13 | Standing: wide filter LFO at low FILTER; not tested there |
 | **4-3** Slow PWM Lead | pulse, PWM | II | 14&nbsp;ms / -1&nbsp;dB / 35&nbsp;ms | pulse width<br>1/2. (0.556&nbsp;Hz)<br>free-running | 255<br>0<br>0 |  |
 | **4-4** Vibrato Saw Lead | saw | II | 4&nbsp;ms / -1&nbsp;dB / 150&nbsp;ms | pitch, 145 cents<br>1/8T (5&nbsp;Hz)<br>free-running<br>delay under 0.2&nbsp;s | 121<br>64<br>0 |  |
-| **4-5** Gliding Pluse Lead II | pulse 45&nbsp;% | fast | 6&nbsp;ms / 0&nbsp;dB / 3&nbsp;ms<br>glide 55&nbsp;ms | pitch, 2-3 cents<br>1/8. (2.222&nbsp;Hz)<br>phase not tested | 255<br>0<br>0 | a slight vibrato, under the 6-cent detection threshold; 3.33&nbsp;Hz at 150 BPM |
+| **4-5** Gliding Pluse Lead II | pulse 45&nbsp;% | I+II | 6&nbsp;ms / 0&nbsp;dB / 3&nbsp;ms<br>glide 55&nbsp;ms | pitch, 2-3 cents<br>1/8. (2.222&nbsp;Hz)<br>phase not tested | 255<br>0<br>0 | a slight vibrato, under the 6-cent detection threshold; 3.33&nbsp;Hz at 150 BPM |
 | **4-6** Octave Dirty Strings | pulse 38&nbsp;%, noise<br>+1 oct, sub -6&nbsp;dB | II | 42&nbsp;ms / -1&nbsp;dB / 183&nbsp;ms | none | 169<br>39<br>91 | Standing: vibrato with delay; none found |
 | **4-7** Octave Mixed Lead | pulse 37&nbsp;%<br>+1 oct, sub -6&nbsp;dB | II | 9&nbsp;ms / -1&nbsp;dB / 40&nbsp;ms | none | 152<br>14<br>0 |  |
 | **4-8** Blown Octave Square | square<br>+1 oct, sub -1&nbsp;dB | II | 20&nbsp;ms / -6&nbsp;dB / 6&nbsp;ms | none | 205<br>120<br>84 |  |
@@ -182,7 +182,7 @@ The same data, one field per attribute for sorting and filtering, is in
 | **8-4** Evolving Filter Pad VII (Blossoming I) | saw<br>+1 oct, sub -10&nbsp;dB | II | 2001&nbsp;ms / -9&nbsp;dB / 570&nbsp;ms | filter, pitch<br>1/1T (0.625&nbsp;Hz)<br>free-running | 84<br>64<br>255 | a whole-note triplet |
 | **8-5** Evolving Filter Pad VII (Blossoming II) | saw spectrum, envelope<br>PWM per Standing<br>sub -13&nbsp;dB | I | 1880&nbsp;ms / 0&nbsp;dB / - | none | 116<br>178<br>255 |  |
 | **8-6** Decaying Filter Pad (Blossoming III) | pulse 33&nbsp;%<br>+1 oct, sub +3&nbsp;dB | I | 7&nbsp;ms / -34&nbsp;dB / 33&nbsp;ms | pitch<br>1/8T (5&nbsp;Hz)<br>free-running<br>delay 0.91&nbsp;s | 157<br>148<br>0 |  |
-| **8-7** Sample and Hold Pad | pulse 28&nbsp;% | fast | 173&nbsp;ms / 0&nbsp;dB / 1541&nbsp;ms | filter, sample and hold<br>1/16. (4.444&nbsp;Hz)<br>restarts | 28<br>159<br>146 | tested at 150 BPM (6.67&nbsp;Hz) |
+| **8-7** Sample and Hold Pad | pulse 28&nbsp;% | I+II | 173&nbsp;ms / 0&nbsp;dB / 1541&nbsp;ms | filter, sample and hold<br>1/16. (4.444&nbsp;Hz)<br>restarts | 28<br>159<br>146 | tested at 150 BPM (6.67&nbsp;Hz) |
 | **8-8** Plectrum Tremolo Pad | saw<br>+1 oct, sub, same level | II | 6&nbsp;ms / -10&nbsp;dB / 746&nbsp;ms | filter<br>1/32 (13.333&nbsp;Hz)<br>restarts | 105<br>255<br>0 | a 1/32 at 60, 70 and 100 BPM |
 
 How to read it:
@@ -201,9 +201,10 @@ How to read it:
   "pulse, PWM" marks the four sounds where, with the filter fully open, both
   the even harmonics and the brightness still swing at the LFO's rate; "saw
   spectrum, PWM per Standing" marks those where this could not be shown.
-- **Chorus**: I (its LFO at 0.543 Hz), II (0.879 Hz) or fast (7.57 Hz, the
-  counterpart of the JUNO-60's I+II), from the rate at which the two channels
-  move in opposite phase (section 4.5.5); Off is exact mono.
+- **Chorus**: I (its LFO at 0.543 Hz), II (0.879 Hz) or I+II (7.57 Hz), from
+  the rate at which the two channels move in opposite phase (section 4.5.5);
+  Off is exact mono. I+II is the JUNO-60's third mode, called up there by
+  pressing both chorus buttons: fast and shallow.
 - **Attack / sustain / release, glide**: the amplitude envelope of a 6 s A2
   note with the filter fully open. Attack: time to come within 3 dB of the
   peak. Sustain: the level at the end of the note, relative to the peak.
@@ -249,7 +250,7 @@ How to read it:
 | RESONANCE lifts the resonant peak by up to about 15 dB and lowers the fundamental by 5-6 dB. | 2-7 at FILTER 69, 16 steps. | `sweep_resonance.csv` |
 | ATTACK stays under 20 ms up to 68, then doubles every 31 steps, to 1.7 s at 255. | 2-7, 16 steps. | `sweep_attack.csv` |
 | [ENVELOPE] moves decay, sustain and release together, in four ways depending on the sound (section 2.3). On 1-3, a pluck: decay to -20 dB from 35 to 215 ms between 0 and 119, a sustain from 136 (-18.7 dB) to 255 (-0.7 dB), and releases up to 26.4 s to -60 dB. | 1-3: 16 steps, then three notes with 30 s of tail. All 64 sounds at ENV 0, 128 and 255. | `sweep_env.csv`, `longtail.csv`, `envelope.csv` |
-| The chorus has three modes, each a free-running LFO: I at 0.543 Hz, II at 0.879 Hz, and a fast, shallow mode at 7.57 Hz (2-1, 4-5 and 8-7), the counterpart of the JUNO-60's "secret" I+II. Chorus off is exact mono. | I and II measured on 20 s notes; the fast mode at the same rate at 100 and 150 BPM; each sound's mode from the opposite-phase movement of its two channels. | `longnote.csv`, `chorus.csv` |
+| The chorus has three modes, each a free-running LFO: I at 0.543 Hz, II at 0.879 Hz, and I+II at 7.57 Hz (2-1, 4-5 and 8-7), the JUNO-60's "secret" third mode, fast and shallow. Chorus off is exact mono. | I and II measured on 20 s notes; I+II at the same rate at 100 and 150 BPM; each sound's mode from the opposite-phase movement of its two channels. | `longnote.csv`, `chorus.csv` |
 | MIDI notes play at their pitch when [CHORD] is unlit, and [CHORD] is lit after every power-on. Tuning is within 0.3 cent of A440. | A2 measured at 110.02 Hz. | `measurements.csv` |
 | Glide belongs to each voice: a voice glides from the last pitch it played. | The starting pitch of a glide changes with the voice that plays it. | `measurements.csv` |
 | The J-6 ignores the MIDI message All Sound Off. | Releases ring on through it. | - |
@@ -365,12 +366,11 @@ the vocabulary of Standing's sheet, and of this report.
   (1-5's 3.26 Hz is the sixth harmonic of chorus I) or real LFOs mismeasured
   beside one. Notes of 20 s, whose finer resolution separates rates 0.1 Hz
   apart, sorted them out.
-- **A third chorus.** Besides I and II, three sounds (2-1, 4-5 and 8-7) use a
-  fast, shallow chorus whose LFO runs at 7.57 Hz whatever the tempo: closer to a
-  vibrato that wobbles the two sides of the stereo image in opposite
-  directions. It is the JUNO-60's heritage too: on the original, pressing I
-  and II together gave a "secret" third mode (Roland's word), which the J-6
-  hands to three presets.
+- **The JUNO trick: chorus I+II.** On the JUNO-60, pressing both chorus
+  buttons gave a "secret" third mode (Roland's word). The J-6 keeps it and
+  hands it to three presets (2-1, 4-5 and 8-7): a fast, shallow chorus whose
+  LFO runs at 7.57 Hz whatever the tempo, closer to a vibrato that wobbles the
+  two sides of the stereo image in opposite directions.
 - **Pulse-width modulation fools the spectrum and the pitch tracker.** A
   pulse whose width sweeps widely, averaged over time, has a saw's spectrum,
   which is why our first analysis called four PWM sounds saws. A sweep that
@@ -714,7 +714,8 @@ tallest wins if it stands 6 times above the median and twice above the
 next. On 2-1, 4-5 and 8-7 the difference moves at 7.57 Hz (at 100 as at
 150 BPM on 4-5 and 8-7; 2-1 sustains only at ENV 255, recorded at 100 BPM):
 a third chorus mode, faster and shallower (the stereo difference lies 11 to
-20 dB under the sum, against 3 to 8 dB for I and II).
+20 dB under the sum, against 3 to 8 dB for I and II), which this report
+names I+II after its JUNO-60 ancestor.
 
 The three modes are the JUNO's. On the JUNO-60, pressing I and II together
 calls up "a 'secret' third mode for exaggerated movement with a distinctive
@@ -728,10 +729,10 @@ measures its rates and quotes the service notes:
 |---|---|---|---|
 | I | 0.543 Hz | 0.513 Hz | 0.4 Hz |
 | II | 0.879 Hz | 0.863 Hz | 0.67 Hz |
-| I+II (fast) | 7.57 Hz | 9.75 Hz | 8.06 Hz |
+| I+II | 7.57 Hz | 9.75 Hz | 8.06 Hz |
 
-I and II sit within 6 % and 2 % of the JUNO-60 figures. The third mode runs
-22 % slower than that analysis measured, and 6 % slower than the JUNO-6's
+I and II sit within 6 % and 2 % of the JUNO-60 figures. I+II runs 22 %
+slower than that analysis measured, and 6 % slower than the JUNO-6's
 figure; the JUNO-60 service notes, according to the same analysis, print
 "1Hz", probably a typo for 10 Hz. The analysis also gives the third mode a
 delay swept over 3.3-3.7 ms, against 1.66-5.35 ms for I and II (its table
@@ -1341,15 +1342,15 @@ while a 3.5 s window starting 2 s in gives 0.95 against the clock.
 at the three chorus LFO rates, against their median; the sounds the main
 analysis had left undecided):
 
-| sound | main analysis | height at 0.543 Hz (I) | at 0.880 Hz (II) | at 7.57 Hz (fast) | verdict |
+| sound | main analysis | height at 0.543 Hz (I) | at 0.880 Hz (II) | at 7.57 Hz (I+II) | verdict |
 |---|---|---|---|---|---|
 | 1-7 | on | 348.7 | 63.6 | 1.1 | I |
-| 2-1 | on | 0.9 | 7.0 | 22.6 | fast |
+| 2-1 | on | 0.9 | 7.0 | 22.6 | I+II |
 | 2-3 | on | 45.8 | 5.9 | 1.7 | I |
 | 2-6 | on | 27.7 | 4.4 | 1.3 | I |
-| 4-5 | on | 0.6 | 1.3 | 234.9 | fast |
+| 4-5 | on | 0.6 | 1.3 | 234.9 | I+II |
 | 5-1 | on | 40.0 | 5.2 | 1.2 | I |
-| 8-7 | on | 0.9 | 1.6 | 134.4 | fast |
+| 8-7 | on | 0.9 | 1.6 | 134.4 | I+II |
 
 On the 43 sounds the main analysis had named I or II, the test agrees on 43, the winning height standing 3.8 to 9.8 times above the next (median 8.0); the 14 sounds it found off are exact mono on every take (14 of 14).
 
@@ -1548,8 +1549,8 @@ In the order they happened.
     (4.5.15).
 19. **Chorus "on".** The first chorus test left seven sounds undecided, and
     the report first printed them as "chorus on". The opposite-phase test
-    (4.5.5) settled four as chorus I and found the third mode on the other
-    three.
+    (4.5.5) settled four as chorus I and found I+II, the JUNO-60's third mode,
+    on the other three.
 20. **4-5's vibrato.** Its 2-cent pitch ripples at 2.22 and 4.44 Hz were
     first put down to harmonics of the chorus LFO, on the assumption that
     4-5 used chorus I or II. With its chorus at 7.57 Hz, that explanation

@@ -174,7 +174,7 @@ for b in range(1, 9):
         glide = "-" if g in ("", None) else (f(g) if float(g) > 5 else "no")
         note = L[s][4] if L.get(s) else NOTE_NONE.get(s, "")
         name = comp[s]["Name (spreadsheet)"].replace("|", "/")
-        ch = chorus.get(s) if chorus.get(s) in ("I", "II", "fast", "Off") else r["chorus"]
+        ch = chorus.get(s) if chorus.get(s) in ("I", "II", "I+II", "Off") else r["chorus"]
         cells = [f"**{s}** {name}", osc(s), ch,
                  env(s) + (f"<br>glide {glide} ms" if glide not in ("-", "no") else ""),
                  lfo_cell(s), f"{d[s]['FILTER']}<br>{d[s]['RESONANCE']}<br>{d[s]['ATTACK']}", note]

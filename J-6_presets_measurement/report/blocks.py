@@ -121,13 +121,13 @@ table(["sound", "pass", "BPM", "measured on", "rate (Hz)", "note", "against the 
 ch = rd("chorus")
 out.append("### Chorus modes")
 def hgt(r, k): return fmt(r.get(f"height_{k}"), 1)
-table(["sound", "main analysis", "height at 0.543 Hz (I)", "at 0.880 Hz (II)", "at 7.57 Hz (fast)", "verdict"],
-      [[r["sound"], r["main_analysis"], hgt(r, "I"), hgt(r, "II"), hgt(r, "fast"), r["verdict"]]
+table(["sound", "main analysis", "height at 0.543 Hz (I)", "at 0.880 Hz (II)", "at 7.57 Hz (I+II)", "verdict"],
+      [[r["sound"], r["main_analysis"], hgt(r, "I"), hgt(r, "II"), hgt(r, "I+II"), r["verdict"]]
        for r in ch if r["main_analysis"] not in ("I", "II", "Off") or r["verdict"] != r["main_analysis"]])
 known = [r for r in ch if r["main_analysis"] in ("I", "II")]
 ratios = []
 for r in known:
-    h = sorted((float(r[f"height_{k}"]) for k in ("I", "II", "fast")), reverse=True)
+    h = sorted((float(r[f"height_{k}"]) for k in ("I", "II", "I+II")), reverse=True)
     ratios.append(h[0] / h[1])
 agree = sum(r["verdict"] == r["main_analysis"] for r in known)
 offs = [r for r in ch if r["main_analysis"] == "Off"]

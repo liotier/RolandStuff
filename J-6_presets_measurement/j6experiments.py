@@ -1344,10 +1344,11 @@ def destinations(root: Path, out: Path) -> None:
 
 
 # ---------------------------------------------------------------- chorus modes
-# Chorus LFO rates (Hz): I and II measured on the 20 s notes (longnote), the
-# fast mode on 4-5 and 8-7, the same at 100 and 150 BPM.
-CHORUS_LFO = {"I": 0.5428, "II": 0.8796, "fast": 7.57}
-CHORUS_TOL = {"I": 0.06, "II": 0.06, "fast": 0.1}
+# Chorus LFO rates (Hz): I and II measured on the 20 s notes (longnote); I+II,
+# the JUNO-60's third mode (both buttons pressed), on 2-1, 4-5 and 8-7, the
+# same at 100 and 150 BPM.
+CHORUS_LFO = {"I": 0.5428, "II": 0.8796, "I+II": 7.57}
+CHORUS_TOL = {"I": 0.06, "II": 0.06, "I+II": 0.1}
 SIX_SECOND_PASSES = ("default", "open", "env255", "tempo150")
 
 
