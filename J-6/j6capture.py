@@ -63,8 +63,20 @@ STIMULI = {
     # voices sound, and which notes are dropped
     "poly": [(f"poly_{n}", n, None, 0.5 * i, 4.0 - 0.5 * i)
              for i, n in enumerate([48, 52, 55, 59, 62, 65])],
+    # seven A2 notes of 3.5 s at irregular spacing: does an LFO restart with
+    # each note? The onsets spread the phase a free-running LFO would have at
+    # each note-on, for every note value at 100 BPM.
+    "retrig": [(f"retrig_{i}", 45, None, on, 3.5)
+               for i, on in enumerate([0.0, 4.64, 9.16, 13.83, 18.40, 22.91, 27.49])],
+    # A1, A2, A3, A4, 2 s each: cutoff and keyboard tracking from the
+    # resonant peak against the harmonics of each note
+    "filter": [(f"filter_{n}", note, None, 2.5 * i, 2.0)
+               for i, (n, note) in enumerate([("A1", 33), ("A2", 45), ("A3", 57), ("A4", 69)])],
+    # one 6 s A2 note and 30 s to fade: releases of many seconds
+    "longtail": [("long_A2", 45, None, 0.00, 6.00)],
 }
-TAIL = {"full": 2.00, "short": 2.35, "envelope": 6.0, "velocity": 1.0, "poly": 2.5}  # after the last note-off
+TAIL = {"full": 2.00, "short": 2.35, "envelope": 6.0, "velocity": 1.0, "poly": 2.5,
+        "retrig": 1.5, "filter": 1.5, "longtail": 30.0}  # after the last note-off
 PRE_ROLL = 0.8   # s between starting arecord and the first note (noise floor)
 NATIVE_RATE = 44100  # the J-6's only USB audio rate (S32_LE, stereo) on a v1.02 unit
 MARGIN = 0.5
@@ -283,7 +295,9 @@ def main() -> None:
                     help="e.g. 1..64 (default), 1..3, 2-5 (panel label), 1,9,17")
     ap.add_argument("--stimulus", choices=sorted(STIMULI), default="full",
                     help="full (about 26 s per take), short (13 s), envelope (22 s, long "
-                    "tails), velocity (18 s, A3 at 16 velocities), poly (8 s, six overlapping notes)")
+                    "tails), velocity (18 s, A3 at 16 velocities), poly (8 s, six overlapping "
+                    "notes), retrig (33 s, seven A2 notes), filter (11 s, A1 to A4), "
+                    "longtail (36 s, one note and 30 s of release)")
     ap.add_argument("--prm-dir", help="the RESTORE folder generated for this pass, "
                     "to store each pattern's settings with its take")
     ap.add_argument("--card", default="J6", help="ALSA card id for audio (default J6)")

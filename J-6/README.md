@@ -276,21 +276,34 @@ envelope levels and times only.
 
 ## Experiments
 
-Two further pattern sets, recorded with `bash j6passes.sh tempo150 sweep`
-(one restore each) and analysed with `python3 j6experiments.py captures -o
-results`, which writes one CSV per experiment and prints a summary:
+Further pattern sets, recorded with `bash j6passes.sh tempo150 sweep` and
+`bash j6passes.sh keysync filters` (one restore each) and analysed with
+`python3 j6experiments.py captures`, which writes CSV files into `results/`
+and prints a summary:
 
 | Set | Patterns | Recordings | Question |
 |---|---|---|---|
 | `tempo150` | every sound at its defaults, tempo 150 BPM | full pass; velocity ladder on 1-3, 2-7, 4-4, 6-8; polyphony test on 2-7, 4-7, 7-2 | do the LFO rates and delays scale by 1.5 with tempo, and does anything else; level against velocity; number of voices |
 | `sweep` | 16 steps (0, 17 ... 255) of FILTER on 6-8, RESONANCE on 2-7, ATTACK on 2-7, ENV on 1-3 | full stimulus, then the ENV sweep with long tails | knob value against cutoff (Hz, read from the self-oscillating filter), resonance, attack time, decay / sustain / release |
+| `keysync` | every sound at its defaults (8-7 at 150 BPM) | `retrig` on the 38 sounds with an LFO that sustain: seven A2 notes of 3.5 s at irregular spacing | does each LFO (and 8-7's sample and hold) restart with each note or run freely |
+| `filters` | 6-8, 2-7, 4-6, 4-4: FILTER 255 / RESONANCE 0, then FILTER 17 ... 238 at RESONANCE 255; 1-3 at ENV 221, 238, 255 | `filter` (A1, A2, A3, A4, 2 s each) on the first 60; `longtail` (one 6 s note, 30 s of release) on the last three | each sound's cutoff offset, steps per octave and keyboard tracking; releases longer than 7.5 s |
 
 `j6prm.py generate --plan sweep` builds the sweep set (the plan is built in);
 `--plan FILE` builds any pattern set from a CSV giving each pattern its sound
-and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM). `j6capture.py` has three extra stimuli:
+and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM);
+`keysync` and `filters` are built in too. `j6capture.py` has six extra stimuli:
 `envelope` (6 s note, 8 s tail, staccato, 6 s tail), `velocity` (A3 at 16
-velocities, 8 to 127) and `poly` (six notes entering 0.5 s apart, released
-together).
+velocities, 8 to 127), `poly` (six notes entering 0.5 s apart, released
+together), `retrig`, `filter` and `longtail` (above).
+
+The `retrig` onsets (0, 4.64, 9.16, 13.83, 18.40, 22.91, 27.49 s) are chosen
+so that, for every note value at 100 BPM, an LFO running freely would meet the
+seven note-ons at scattered phases (concentration at most 0.46, where 1 means
+the same phase each time), while an LFO that restarts with each note shows the
+same phase on all seven. In `filters`, the resonant peak is located by
+comparing each harmonic with the sound's FILTER 255 / RESONANCE 0 reference,
+so it works whether or not the filter self-oscillates; on synthetic test
+signals the fit recovers the mapping within 5 cents.
 
 Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
 `sweep_*.csv`):

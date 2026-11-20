@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Analyse the experiment passes recorded by j6passes.sh: tempo150, velocity,
-poly and sweep.
+poly, sweep, keysync, filters and longtail.
 
   python3 j6experiments.py captures -o results
 
-Run it from the experiment folder. CAPTURES holds default/ (the reference, at
-each pattern's own tempo, 100 BPM) and any of tempo150/, velocity/, poly/ and
-sweep/. Each experiment found writes its CSV into the output folder and prints
-a summary.
+Run it from the experiment folder. CAPTURES holds the experiment folders
+below; tempo150 also needs default/ (the reference at 100 BPM). Each
+experiment found writes its CSV files into the output folder and prints a
+summary.
 
 tempo      every sound at 150 BPM against the default pass: LFO rates, the
            note values they match, their onset delays, and measurements that
@@ -26,6 +26,13 @@ sweep      the built-in plan of j6prm.py: FILTER on 6-8 at resonance 255 (the
            frequency of the resonant peak, A2 and A4), RESONANCE on 2-7 (gain at
            each harmonic against resonance 0), ATTACK on 2-7 (rise times) and
            ENV on 1-3 (decay, sustain, release, brightness over time)
+keysync    seven A2 notes per sound with an LFO: whether the LFO's phase
+           restarts with each note or runs freely (8-7's sample and hold at
+           150 BPM, where its steps stand out from its chorus)
+filters    FILTER 17-238 at RESONANCE 255 on 6-8, 2-7, 4-6 and 4-4, notes A1
+           to A4: each sound's cutoff offset, steps per octave and keyboard
+           tracking, from the resonant peak against a FILTER 255 reference
+longtail   1-3 at ENV 221, 238 and 255: releases of many seconds
 
 Needs j6analyze.py and j6prm.py beside it, numpy, scipy and soundfile.
 """
@@ -73,24 +80,50 @@ def log_slope(x, y):
 
 
 # ---------------------------------------------------------------- tempo
+def jumps(tk: A.Take, a: float, b: float, hop: float = 0.01):
+    """Size of the frame-to-frame jumps of the spectral centroid (log2, 40 ms
+    frames, hop apart) between a and b, and the time of each jump."""
+    ts = np.arange(a, b - 0.04, hop)
+    c = np.array([A.centroid(tk.seg(t, t + 0.04), tk.sr) for t in ts])
+    ok = np.isfinite(c) & (c > 0)
+    if len(c) < 50 or ok.mean() < 0.8:
+        return None, None
+    c = np.interp(np.arange(len(c)), np.flatnonzero(ok), np.log2(c[ok]))
+    return ts[1:] + 0.02, np.abs(np.diff(c))
+
+
+def peak_rate(d, hop=0.01, fmin=0.5, fmax=20.0) -> float:
+    spec = np.abs(np.fft.rfft((d - d.mean()) * np.hanning(len(d)), 1 << 14))
+    f = np.fft.rfftfreq(1 << 14, hop)
+    sel = (f > fmin) & (f < fmax)
+    return float(f[sel][np.argmax(spec[sel])])
+
+
+def averaged_peak_rate(ds, exclude=(), hop=0.01, fmin=0.5, fmax=20.0):
+    """Strongest periodicity of several jump series together (their spectra,
+    each divided by its median, summed), away from the excluded rates; and its
+    height against the median of the sum."""
+    f = np.fft.rfftfreq(1 << 14, hop)
+    tot = np.zeros(len(f))
+    for d in ds:
+        spec = np.abs(np.fft.rfft((d - d.mean()) * np.hanning(len(d)), 1 << 14))
+        tot += spec / max(np.median(spec), 1e-12)
+    sel = (f > fmin) & (f < fmax)
+    for e in exclude:
+        sel &= np.abs(f - e) >= 0.35
+    i = int(np.argmax(np.where(sel, tot, -1)))
+    return float(f[i]), float(tot[i] / np.median(tot[sel]))
+
+
 def step_rate(tk: A.Take) -> float | None:
     """Rate of a stepped (sample-and-hold) brightness modulation: the
-    strongest periodicity, 0.5-20 Hz, in the size of the frame-to-frame jumps
-    of the spectral centroid (40 ms frames, 10 ms apart) on the long note."""
+    strongest periodicity, 0.5-20 Hz, in the size of the centroid's jumps on
+    the long note."""
     end = min(A.audible_until(tk, 6.0), 5.9)
     if end < 1.7:
         return None
-    hop = 0.01
-    c = np.array([A.centroid(tk.seg(t, t + 0.04), tk.sr) for t in np.arange(0.2, end, hop)])
-    ok = np.isfinite(c) & (c > 0)
-    if ok.mean() < 0.8:
-        return None
-    c = np.interp(np.arange(len(c)), np.flatnonzero(ok), np.log2(c[ok]))
-    d = np.abs(np.diff(c))
-    spec = np.abs(np.fft.rfft((d - d.mean()) * np.hanning(len(d)), 1 << 14))
-    f = np.fft.rfftfreq(1 << 14, hop)
-    sel = (f > 0.5) & (f < 20)
-    return float(f[sel][np.argmax(spec[sel])])
+    _, d = jumps(tk, 0.2, end)
+    return None if d is None else peak_rate(d)
 
 
 def tempo(root: Path, out: Path) -> None:
@@ -362,6 +395,264 @@ def sweep(root: Path, out: Path) -> None:
     for knob, group in groups.items():
         SWEEPS[knob](sorted(group, key=lambda g: g[0]), out)
 
+# ---------------------------------------------------------------- keysync
+BEATS = {name: beats for beats, name in A.NOTE_VALUES}
+FIT_FROM = 1.0   # s after each note-on: past the LFO delays measured (0.9 s at most)
+
+
+def phase_fit(t, s, f):
+    """Amplitude and phase lag theta of s ~ A cos(2 pi f t - theta) + c."""
+    m = np.column_stack([np.cos(2 * np.pi * f * t), np.sin(2 * np.pi * f * t), np.ones_like(t)])
+    (a, b, _), *_ = np.linalg.lstsq(m, s, rcond=None)
+    return math.hypot(a, b), math.atan2(b, a)
+
+
+def chorus_exclusion(root: Path, tk: A.Take, notes) -> tuple[str, list[float]]:
+    """Chorus I, II, on (rate unclear) or Off, and the rates its free-running
+    sweep shows at in the measurements: its rate, half and twice it, as in
+    j6analyze.py. The chorus is read from the sound's 6 s note in the default
+    pass when captures/default holds it (a 3.5 s note often leaves the rate
+    unclear), else by a vote over the notes."""
+    i = int(tk.meta["prm"]["SOUND"])
+    ref = root / "default" / f"default_P{i + 1:02d}_{A.label(i)}.json"
+    if ref.exists():
+        dt = A.Take(ref)
+        ch = A.chorus(dt, 0.3, min(A.audible_until(dt, 6.0), 5.95)).get("chorus", "on")
+    else:
+        votes = [A.chorus(tk, e["on"] + 0.3, e["off"] - 0.05).get("chorus") for e in notes]
+        named = [v for v in votes if v in A.CHORUS_MOD]
+        ch = max(set(named), key=named.count) if named else ("on" if "on" in votes else "Off")
+    rates = [A.CHORUS_MOD[ch]] if ch in A.CHORUS_MOD else (list(A.CHORUS_MOD.values()) if ch == "on" else [])
+    return ch, [v * m for v in rates for m in (0.5, 1, 2)]
+
+
+def consistent_rate(rates, n):
+    """Median of the rates if more than half of n notes lie within 5 % (at
+    least 0.12 Hz) of it, else None."""
+    if not rates:
+        return None
+    med = float(np.median(rates))
+    close = sum(abs(x - med) <= max(0.05 * med, 0.12) for x in rates)
+    return med if close > n // 2 else None
+
+
+def concentration(angles) -> float:
+    return float(abs(np.mean(np.exp(1j * np.asarray(angles)))))
+
+
+def keysync(root: Path, out: Path) -> None:
+    """Seven A2 notes per sound. The LFO is found on each note (pitch,
+    brightness or even-harmonic share; the stepped brightness of a sample and
+    hold otherwise), its rate set to the exact note value at the pattern
+    tempo, and its phase measured on each note from 1 s after the note-on. If
+    the LFO restarts with each note, the phase relative to the note-on is the
+    same on every note; if it runs freely, the phase relative to the take is.
+    The note onsets are spread so that one hypothesis predicts scattered
+    phases where the other predicts equal ones (concentration of the onsets'
+    phases at most 0.46 for every note value at 100 BPM)."""
+    rows, summary = [], []
+    for tk in takes(root / "keysync"):
+        lab = sound_of(tk)
+        bpm = float(tk.meta["prm"].get("TEMPO", 10000)) / 100
+        notes = sorted(tk.events.values(), key=lambda e: e["on"])
+        tracks = [A.track(tk, e["on"] + 0.1, e["off"] - 0.05, A.A2) for e in notes]
+        ch, exclude = chorus_exclusion(root, tk, notes)
+        # a detection counts if most notes agree on its rate and it is a note value
+        # (minimum swings as in j6analyze.py: smaller ones include the frame
+        # analysis's own ripple, 10 Hz for A2 at 10 ms frames)
+        cand = {}
+        for col, kind, least in ((0, "vibrato", 6.0), (1, "filter LFO", 0.1), (2, "PWM", 0.05)):
+            found = [res for res in (A.lfo(tr, col, exclude) if tr is not None else None for tr in tracks)
+                     if res and res[2] > least]
+            rate = consistent_rate([res[0] for res in found], len(notes))
+            nv = A.note_value(rate, bpm) if rate else None
+            if nv:
+                cand[kind] = (col, rate, float(np.median([res[1] for res in found])),
+                              float(np.median([res[2] for res in found])), nv)
+        # one LFO moving several things shows in several measurements; a pitch
+        # or pulse-width change also shifts the brightness (as in j6analyze.py)
+        for weaker, stronger, small in (("filter LFO", "PWM", 0.5), ("filter LFO", "vibrato", 0.5),
+                                        ("vibrato", "PWM", 25.0)):
+            if weaker in cand and stronger in cand and abs(cand[weaker][1] - cand[stronger][1]) < 0.1 \
+                    and cand[weaker][3] < small:
+                del cand[weaker]
+        series = []
+        if cand:
+            kind = max(cand, key=lambda k: cand[k][2])
+            col, _, _, _, nv = cand[kind]
+            for e, tr in zip(notes, tracks):
+                sv = A._clean((tr[:, 0, col] + tr[:, 1, col]) / 2) if tr is not None else None
+                if sv is not None:
+                    series.append((e, 0.14 + 0.01 * np.arange(len(sv)), sv))
+        else:
+            # a sample and hold: steps in brightness, found on the jump-size
+            # spectrum averaged over the notes (on one note the chorus's sweep
+            # often outweighs it)
+            per = [jumps(tk, e["on"] + 0.1, e["off"] - 0.05) for e in notes]
+            per = [(e, t, d) for e, (t, d) in zip(notes, per) if d is not None]
+            if len(per) > len(notes) // 2:
+                rate, prom = averaged_peak_rate([d for _, _, d in per], exclude)
+                nv = A.note_value(rate, bpm)
+                if nv and prom >= 4:
+                    kind = "stepped brightness"
+                    series = [(e, t - e["on"], d - d.mean()) for e, t, d in per]
+        if not series:
+            print(f"  {lab}: no LFO found on the notes")
+            summary.append({"sound": lab, "chorus": ch, "verdict": "no LFO found"})
+            continue
+        f = bpm / 60 / BEATS[nv]
+        rel, ab = [], []
+        for e, tau, sv in series:
+            sel = tau >= FIT_FROM
+            amp, theta = phase_fit(tau[sel], sv[sel], f)
+            big = theta + 2 * np.pi * f * e["on"]
+            rel.append(theta)
+            ab.append(big)
+            rows.append({"sound": lab, "measurement": kind, "rate_hz": r(f, 3), "note_value": nv,
+                         "note": e["name"], "onset_s": e["on"], "amplitude": r(amp, 4),
+                         "phase_re_note_on_deg": r(math.degrees(theta) % 360, 0),
+                         "phase_re_take_deg": r(math.degrees(big) % 360, 0)})
+        r_rel, r_abs = concentration(rel), concentration(ab)
+        r_on = concentration([2 * np.pi * f * e["on"] for e, _, _ in series])
+        window = min(len(t) for _, t, _ in series) * 0.01 - FIT_FROM
+        if f * window < 1.0:
+            verdict = "too slow to tell"
+        elif r_rel >= 0.8 and r_rel - r_abs >= 0.3:
+            verdict = "restarts with each note"
+        elif r_abs >= 0.8 and r_abs - r_rel >= 0.3:
+            verdict = "free-running"
+        else:
+            verdict = "unclear"
+        summary.append({"sound": lab, "chorus": ch, "measurement": kind, "rate_hz": r(f, 3), "note_value": nv,
+                        "notes": len(series), "concentration_re_note_on": r(r_rel, 2),
+                        "concentration_re_take": r(r_abs, 2), "onset_concentration": r(r_on, 2),
+                        "verdict": verdict})
+        print(f"  {lab}: {kind} {f:.2f} Hz ({nv}): phase concentration {r_rel:.2f} against the note-on, "
+              f"{r_abs:.2f} against the take -> {verdict}")
+    write(out / "keysync_notes.csv", rows)
+    write(out / "keysync.csv", summary)
+    counts = {}
+    for row in summary:
+        counts[row["verdict"]] = counts.get(row["verdict"], 0) + 1
+    print("  " + ", ".join(f"{v}: {n}" for v, n in sorted(counts.items())))
+
+
+# ---------------------------------------------------------------- filters
+def resonant_peak(tk: A.Take, ref: A.Take, a: float, b: float, f0: float):
+    """Gain of each harmonic against the reference take (FILTER 255,
+    RESONANCE 0), within 50 dB of the reference's strongest harmonic and below
+    12 kHz. The resonant peak is the largest gain, if it stands 6 dB above
+    the median gain of the harmonics below it and is not the first or last
+    one; its frequency is refined by a parabola through the gains (dB) of
+    its neighbours against log frequency."""
+    kmax = int(12000 // f0)
+    hs = []
+    for t in (tk, ref):
+        f, m = A.spectrum(t.seg(a, b), t.sr, 1 << 18)
+        hs.append(A.grid(f, m, f0, kmax, rel=0.03))
+    h, h0 = hs
+    valid = np.flatnonzero(h0 > h0.max() * 10 ** (-50 / 20))
+    g = 20 * np.log10((h + 1e-12) / (h0 + 1e-12))
+    j = int(valid[np.argmax(g[valid])])
+    gain = float(g[j])
+    if j in (valid[0], valid[-1]) or j - 1 not in valid or j + 1 not in valid:
+        return None, gain
+    if gain - np.median(g[valid[valid < j]]) < 6:
+        return None, gain
+    x = np.log2(f0 * np.array([j, j + 1, j + 2]))
+    c2, c1, _ = np.polyfit(x, g[j - 1:j + 2], 2)
+    xv = -c1 / (2 * c2) if c2 < 0 else x[1]
+    return float(2 ** min(max(xv, x[0]), x[2])), gain
+
+
+# Fit limits. Below the 6th harmonic the harmonics sample a sharp peak too
+# coarsely (errors of 100-500 cents on synthetic data, under 60 above it).
+# On 6-8 the mapping is exponential up to FILTER 170 and flattens above it,
+# towards a ceiling near 16 kHz.
+MIN_HARMONIC, MAX_FIT_HZ, MAX_FIT_FILTER = 6, 8000, 170
+
+
+def filters(root: Path, out: Path) -> None:
+    """FILTER 17-238 at RESONANCE 255 on four sounds, each note A1 to A4
+    measured from 0.8 s after its note-on (past the filter envelope's sweep)
+    against the sound's FILTER 255 / RESONANCE 0 reference. Per sound, a fit
+    log2(peak) = a + b FILTER + c log2(note / A2) over the well-resolved peaks
+    of the exponential region (see the limits above) gives the steps per
+    octave (1/b), the keyboard tracking (c, octaves per octave) and the
+    FILTER value that puts the peak at 1 kHz on A2: the sound's cutoff
+    offset. filters.csv keeps every peak, fitted or not."""
+    groups: dict[str, dict] = {}
+    for tk in takes(root / "filters"):
+        prm = tk.meta["prm"]
+        g = groups.setdefault(sound_of(tk), {"ref": None, "sweep": []})
+        if int(prm["FILTER"]) == 255 and int(prm["RESONANCE"]) == 0:
+            g["ref"] = tk
+        else:
+            g["sweep"].append((int(prm["FILTER"]), tk))
+    rows, summary = [], []
+    for lab, g in groups.items():
+        if g["ref"] is None:
+            print(f"  {lab}: no reference take (FILTER 255, RESONANCE 0), skipped")
+            continue
+        pts = []
+        for v, tk in sorted(g["sweep"], key=lambda x: x[0]):
+            for e in sorted(tk.events.values(), key=lambda e: e["on"]):
+                f0 = 440 * 2 ** ((e["note"] - 69) / 12)
+                a, b = e["on"] + 0.8, e["off"] - 0.05
+                pk, gain = resonant_peak(tk, g["ref"], a, b, f0)
+                rows.append({"sound": lab, "FILTER": v, "RESONANCE": int(tk.meta["prm"]["RESONANCE"]),
+                             "note": e["name"].split("_")[-1], "note_hz": r(f0, 2),
+                             "level_dbfs": r(tk.level(a, b)), "peak_hz": r(pk, 0),
+                             "peak_harmonic": r(pk / f0, 1) if pk else None, "peak_gain_db": r(gain),
+                             "strongest_hz": r(strongest(tk, a, b), 0)})
+                if pk and pk / f0 >= MIN_HARMONIC and pk < MAX_FIT_HZ and v <= MAX_FIT_FILTER:
+                    pts.append((v, math.log2(f0 / 110), math.log2(pk)))
+        if len(pts) < 4 or len({p[1] for p in pts}) < 2:
+            print(f"  {lab}: too few resonant peaks for a fit ({len(pts)})")
+            continue
+        x = np.array(pts)
+        m = np.column_stack([np.ones(len(x)), x[:, 0], x[:, 1]])
+        (a0, b0, c0), *_ = np.linalg.lstsq(m, x[:, 2], rcond=None)
+        res = 1200 * (x[:, 2] - m @ np.array([a0, b0, c0]))
+        at1k = (math.log2(1000) - a0) / b0
+        summary.append({"sound": lab, "points": len(pts), "steps_per_octave": r(1 / b0, 2),
+                        "key_tracking": r(c0, 2), "FILTER_for_1kHz_at_A2": r(at1k, 1),
+                        "residual_rms_cents": r(float(np.sqrt(np.mean(res ** 2))), 0)})
+        print(f"  {lab}: {1 / b0:.1f} steps per octave, keyboard tracking {c0:.2f}, 1 kHz at A2 for "
+              f"FILTER {at1k:.0f} (fit on {len(pts)} peaks, residual {np.sqrt(np.mean(res ** 2)):.0f} cents rms)")
+    write(out / "filters.csv", rows)
+    write(out / "filters_summary.csv", summary)
+
+
+# ---------------------------------------------------------------- longtail
+def longtail(root: Path, out: Path) -> None:
+    """One 6 s A2 note and 30 s of release: time for the release to fall 20,
+    40 and 60 dB below the level at note-off (50 ms smoothing), and the decay
+    rate between -10 and -40 dB, extrapolated to a 60 dB fall."""
+    rows = []
+    for tk in takes(root / "longtail"):
+        prm = tk.meta["prm"]
+        off = tk.events["long_A2"]["off"]
+        start = tk.level(off - 0.08, off - 0.01)
+        t, lv = tk.curve(off, off + 29.5, smooth=0.05)
+        t = t - off
+        row = {"sound": sound_of(tk), "ENV": int(prm["ENV"]), "level_at_off_dbfs": r(start)}
+        limit = tk.floor_db + 10 if tk.floor_db > -99 else -100
+        for drop in (20, 40, 60):
+            k = np.flatnonzero(lv <= start - drop)
+            row[f"release_-{drop}dB_s"] = r(float(t[k[0]]), 2) if len(k) and start - drop > limit else None
+        sel = (lv <= start - 10) & (lv >= start - 40) & (t > 0)
+        if sel.sum() > 20:
+            slope = np.polyfit(t[sel], lv[sel], 1)[0]
+            row["decay_db_per_s"] = r(float(-slope), 2)
+            row["release_60dB_extrapolated_s"] = r(float(60 / -slope), 1) if slope < 0 else None
+        rows.append(row)
+        print(f"  {row['sound']} ENV {row['ENV']}: release to -20 / -40 / -60 dB "
+              f"{row['release_-20dB_s']} / {row['release_-40dB_s']} / {row['release_-60dB_s']} s, "
+              f"{row.get('decay_db_per_s')} dB/s")
+    write(out / "longtail.csv", rows)
+
+
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -371,13 +662,15 @@ def main() -> None:
     root, out = Path(args.captures), Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
     found = False
-    for name, fn in (("tempo150", tempo), ("velocity", velocity), ("poly", poly), ("sweep", sweep)):
+    for name, fn in (("tempo150", tempo), ("velocity", velocity), ("poly", poly), ("sweep", sweep),
+                     ("keysync", keysync), ("filters", filters), ("longtail", longtail)):
         if (root / name).is_dir():
             found = True
             print(f"== {name}")
             fn(root, out)
     if not found:
-        sys.exit(f"no tempo150/, velocity/, poly/ or sweep/ in {root}")
+        sys.exit(f"no experiment folder (tempo150, velocity, poly, sweep, keysync, filters, "
+                 f"longtail) in {root}")
 
 
 if __name__ == "__main__":

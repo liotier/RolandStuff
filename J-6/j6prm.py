@@ -204,7 +204,32 @@ def sweep_plan() -> dict[int, dict]:
     return plan
 
 
-BUILTIN_PLANS = {"sweep": sweep_plan}
+def filters_plan() -> dict[int, dict]:
+    """Built-in plan 'filters': for each of 6-8, 2-7, 4-6 and 4-4, a reference
+    pattern (FILTER 255, RESONANCE 0) then FILTER 17, 34 ... 238 at RESONANCE
+    255 (patterns 1-60); then sound 1-3 at ENV 221, 238 and 255 (61-63)."""
+    plan, n = {}, 1
+    for snd in ("6-8", "2-7", "4-6", "4-4"):
+        idx = (int(snd[0]) - 1) * 8 + int(snd[2]) - 1
+        plan[n] = {"sound": idx, "FILTER": 255, "RESONANCE": 0}
+        n += 1
+        for v in range(17, 239, 17):
+            plan[n] = {"sound": idx, "FILTER": v, "RESONANCE": 255}
+            n += 1
+    for v in (221, 238, 255):
+        plan[n] = {"sound": 2, "ENV": v}
+        n += 1
+    return plan
+
+
+def keysync_plan() -> dict[int, dict]:
+    """Built-in plan 'keysync': pattern n = sound n at its defaults, except
+    8-7 at 150 BPM: its sample-and-hold steps (6.67 Hz there) stand out from
+    its chorus better than at 100 BPM (4.44 Hz)."""
+    return {63: {"sound": 62, "BPM": 150.0}}
+
+
+BUILTIN_PLANS = {"sweep": sweep_plan, "filters": filters_plan, "keysync": keysync_plan}
 
 
 def read_plan(path) -> dict[int, dict]:
@@ -313,7 +338,7 @@ def main() -> None:
     p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
-    p.add_argument("--plan", help="'sweep' (built in), or a CSV giving each pattern its sound "
+    p.add_argument("--plan", help="'sweep', 'filters' or 'keysync' (built in), or a CSV giving each pattern its sound "
                    "and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
     p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
                    "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")
