@@ -1,0 +1,2 @@
+sound,tempo_bpm,chorus,measurement,rate_hz,nearest_note_value,deviation_pct,concentration_re_note_on,concentration_re_take,verdict
+1-3,60.0,Off,vibrato,2.0,1/8,0.0,0.11,1.0,free-running

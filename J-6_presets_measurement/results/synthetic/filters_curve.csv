@@ -1,0 +1,5 @@
+sound,FILTER,peak_at_A2_hz,steps_per_octave_from_previous
+3-5,119,946.0,
+3-5,136,2152.0,14.3
+3-5,153,4875.0,14.4
+3-5,170,11064.0,14.4

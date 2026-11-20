@@ -1,0 +1,3 @@
+sound,tempo_bpm,FILTER,RESONANCE,chorus,chorus_lfo_hz,measurement,rate_hz,prominence,swing,nearest_note_value,deviation_pct,chorus_harmonic,at_60_bpm,at_100_bpm
+1-6,100.0,128,0,Off,,filter LFO,0.104,587524696.6,0.39,4/1,0.0,,follows the tempo,
+1-6,60.0,128,0,Off,,filter LFO,0.062,338613229.1,0.391,4/1,-0.0,,,follows the tempo

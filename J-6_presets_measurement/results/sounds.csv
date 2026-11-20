@@ -1,0 +1,65 @@
+sound,name,waveform,pulse_width_pct,octave,sub_db,noise,chorus,attack_ms,sustain_db,release_ms,pluck_decay_ms,glide_ms,envelope_group,lfo_moves,lfo_note_value,lfo_hz_at_100_bpm,lfo_phase,lfo_delay_s,FILTER,RESONANCE,ATTACK,notes
+1-1,Mellow Sub Octave Pluck,pulse 31 %,31,0,,no,I,0,-13.2,71,,0,tail,none,,,,,85,24,0,
+1-2,Square Pluck,square,,0,,no,Off,0,-19.3,2,,0,decaying,none,,,,,85,23,0,
+1-3,Mellow Mallet,square,,0,,no,Off,0,,,239,0,pluck,none,,,,,121,79,0,
+1-4,Noisy Mellow Pluck,square,,0,,yes,Off,0,,,424,0,pluck,filter ?,"slow, 0.3-0.6 Hz",,phase not tested,,128,144,0,seen only with ENV 255: a 0.23 octave brightness swing at 0.556 Hz (1/2.); unverified
+1-5,Noisy Octave Pluck,pulse 43 %,43,1,-2,yes,I,0,,,234,0,pluck,none,,,,,78,97,0,a 3.26 Hz reading is chorus I's 6th harmonic
+1-6,Harpsichord,pulse 30 %,30,1,2,no,Off,0,,,244,0,pluck,"pulse width, pitch",1/4T,2.5,phase not tested,0.55,137,29,0,"measured with ENV 255, where it sustains"
+1-7,Chorus Clavinet,pulse 16 %,16,0,,no,I,3,-9.5,30,,0,gated,pulse width,1/4T,2.5,free-running,,0,28,0,spreadsheet: pulse width fixed
+1-8,Chorus Harp,square,,1,0,no,I,7,,,1541,0,pluck,none,,,,,27,33,0,
+2-1,Staccato Steel Drum,pulse 34 %,34,0,,yes,I+II,0,,,75,0,pluck,"filter, pulse width",1/8,3.333,phase not tested,,95,31,0,"3.330 Hz with ENV 255 (first read at 3.17 Hz, a chorus band edge); Standing: 1/8th notes"
+2-2,Bright Detuned Saw Pluck,saw,,1,3,no,II,0,,,688,,pluck,none,,,,,0,7,0,
+2-3,Synthy 80s Clean Guitar,pulse 31 %,31,1,-1,no,I,3,,,803,0,pluck,none,,,,,65,120,18,
+2-4,Gliding Noisy Pluck,pulse 39 %,39,1,2,yes,II,7,,,334,15,pluck,pulse width,1/8.,2.222,phase not tested,,110,179,38,measured with ENV 255
+2-5,Octave Splash,pulse 44 %,44,1,-2,yes,II,35,,,474,0,pluck,none,,,,,87,158,91,
+2-6,Plectrum Wind,pulse 18 %,18,0,,yes,I,7,-0.4,227,,1127,tail,filter,1/4T,2.5,free-running,,121,183,2,a 7.5 Hz pitch ripple is the LFO's 3rd harmonic
+2-7,Plectrum Mellotron Chorus,pulse 40 %,40,1,-1,no,II,0,-1.4,14,,0,gated,filter,1/8,3.333,free-running,0.67,69,0,0,its pitch ripple is the filter's pull
+2-8,Air Harp,pulse 37 %,37,0,,no,I,0,-9.3,698,,0,tail,filter,1/16.,4.444,free-running,0.37,121,55,0,
+3-1,Ambient Piano,pulse 33 %,33,0,,no,I,2,-27.5,,,,decaying,none,,,,,122,0,0,
+3-2,Synth Vibraphone,square,,0,,no,Off,0,-9.9,429,,0,tail,none,,,,,119,102,0,
+3-3,Hammered Dulcimar,pulse 44 %,44,1,-2,no,II,5,-22.4,690,,0,decaying,none,,,,,146,34,0,
+3-4,Saw Piano,saw,,0,,no,I,0,-10.9,630,,0,tail,none,,,,,106,0,0,
+3-5,Brass Pluck,"saw spectrum, envelope PWM per Standing",,0,,no,I,12,-17.2,9,,0,gated,none,,,,,115,43,58,
+3-6,Resonant Blown Glass,square,,1,-8,no,I,80,-6.4,850,,0,tail,filter,1/4,1.667,free-running,,75,115,117,first suspected to be a chorus harmonic
+3-7,Acid Saw,saw,,0,,no,Off,21,-6.3,18,,0,gated,none,,,,,84,126,77,
+3-8,Bright Trumpet,saw,,0,,no,Off,15,-3.3,66,,0,gated,pitch,1/16.,4.444,free-running,0.85,0,0,67,
+4-1,Octave PWM Lead,"saw spectrum, PWM per Standing",,1,-3,no,II,12,-2.7,8,,0,gated,pulse width,1/2T,1.25,free-running,,64,0,61,
+4-2,Gliding Pulse Lead I,pulse 42 %,42,1,5,no,I,15,-1.4,6,,15,gated,none,,,,,110,170,13,Standing: wide filter LFO at low FILTER; not tested there
+4-3,Slow PWM Lead,"pulse, PWM",,0,,no,II,14,-0.7,35,,0,gated,pulse width,1/2.,0.556,free-running,,255,0,0,
+4-4,Vibrato Saw Lead,saw,,0,,no,II,4,-0.8,150,,,tail,"pitch, 145 cents",1/8T,5.0,free-running,under 0.2,121,64,0,
+4-5,Gliding Pluse Lead II,pulse 45 %,45,0,,no,I+II,6,-0.2,3,,55,gated,"pitch, 2-3 cents",1/8.,2.222,phase not tested,,255,0,0,"a slight vibrato, under the 6-cent detection threshold; 3.33 Hz at 150 BPM"
+4-6,Octave Dirty Strings,pulse 38 %,38,1,-6,yes,II,42,-1.1,183,,0,tail,none,,,,,169,39,91,Standing: vibrato with delay; none found
+4-7,Octave Mixed Lead,pulse 37 %,37,1,-6,no,II,9,-0.8,40,,0,gated,none,,,,,152,14,0,
+4-8,Blown Octave Square,square,,1,-1,no,II,20,-6.4,6,,0,gated,none,,,,,205,120,84,
+5-1,Thick Attack Lead,saw,,1,-5,no,I,2,-8.3,9,,0,gated,pulse width,1/4T,2.5,free-running,,147,18,57,
+5-2,The Fake Slim Shady,pulse 23 %,23,1,-7,no,Off,0,-5.7,183,,0,tail,pitch,1/16.,4.444,free-running,,158,92,0,
+5-3,Ya-ee Choir,saw,,1,-2,no,II,13,-1.3,1027,,0,tail,pulse width,1/2,0.833,free-running,,119,255,0,"first read at 2.59 Hz, a chorus product"
+5-4,Dark Strings,pulse 40 %,40,0,,no,II,14,-2.3,245,,0,tail,pulse width,1/8,3.333,free-running,,133,24,58,the spreadsheet lists no LFO
+5-5,Angry Cat,saw,,0,,yes,II,11,-0.5,636,,649,tail,none,,,,,51,138,36,Standing: fast filter LFO; its jitter is the noisy source
+5-6,Brass Choir,"pulse, PWM",,0,,no,II,27,-3.6,712,,0,tail,"pulse width, pitch",1/16.,4.444,restarts,,79,60,82,restarts only when no other key is held; the voices share it; the pitch swing may be the PWM's own phase motion
+5-7,Whoa Flute,saw,,1,4,no,Off,67,-8.3,4,,15,gated,filter,1/8T,5.0,free-running,,98,114,113,
+5-8,Honky Tonk Clav,"saw spectrum, PWM per Standing",,1,3,no,II,3,-8.2,9,,0,gated,filter or pulse width,1/2.,0.556,free-running,,27,20,0,first misread as restarting
+6-1,PWM Envelope,"saw spectrum, envelope PWM per Standing",,0,,no,I,3,-11.6,20,,0,gated,none,,,,,136,2,0,
+6-2,Solo String,saw,,0,,no,Off,47,-0.3,258,,0,tail,pitch,1/8T,5.0,free-running,0.88,169,0,97,
+6-3,Square Ring Mod,"square, modulated at 53 Hz",,,,no,II,13,-1,79,,0,tail,"filter (per Standing), at audio rate",1/128,53.33,restarts,,161,39,0,the ring-modulator timbre; it changes with the tempo
+6-4,Mellow Trumpet,saw,,0,,no,Off,25,-5.3,101,,0,gated,filter,1/16.,4.444,free-running,hidden,53,0,82,
+6-5,Horn,saw,,0,,no,Off,10,-4.5,71,,0,tail,filter,1/8T,5.0,free-running,0.86,134,0,61,
+6-6,Square Chorus Lead,square,,0,,no,I,12,-4.4,9,,0,gated,none,,,,,48,113,0,
+6-7,Clarinet,square,,0,,no,Off,21,-2.9,107,,0,tail,pitch,1/8T,5.0,free-running,0.54,130,43,72,
+6-8,Ocarina,noise through a ringing filter,,,,no,Off,60,-0.4,17,,,gated,"filter, heard as pitch",1/8,3.333,free-running,,112,255,103,the filter rings: its LFO sounds as vibrato
+7-1,PWM String Ensemble I,"pulse, PWM",,1,3,no,II,42,-1.2,233,,0,tail,pulse width,1/8.,2.222,free-running,,207,7,80,
+7-2,Saw String Ensemble,saw,,1,7,no,II,126,-1.5,357,,0,tail,"pitch, pulse width ?",1/4T,2.5,free-running,,166,17,122,the spreadsheet lists no LFO; a 6-cent vibrato; the even harmonics move at twice its rate
+7-3,Brass Ensemble,saw,,0,,yes,II,198,-5,209,,0,tail,"pitch, pulse width ?",1/16.,4.444,free-running,,129,15,154,"Standing: vibrato, saw without PWM; with the filter open its even harmonics and brightness still swing"
+7-4,PWM String Ensemble II,"pulse, PWM",,1,-2,no,II,46,-0.8,1080,,0,tail,pulse width,1/8.,2.222,free-running,,135,17,89,
+7-5,Ghost Pad,saw,,0,,yes,I,399,-0.3,256,,0,tail,pitch,1/32.,8.889,free-running,,116,0,183,
+7-6,Evolving Filter Pad I (Bright),pulse 25 %,25,0,,no,II,46,-9.7,247,,0,tail,"filter, pitch",1/4T,2.5,free-running,0.82,182,0,97,
+7-7,Evolving Filter Pad II (Mellow),square,,1,3,no,II,346,-0.7,1894,,0,tail,filter,1/8,3.333,free-running,hidden,98,97,179,delay hidden by the filter envelope
+7-8,Evolving Filter Pad III (Mellow Slow and Wide),saw,,0,,no,II,211,-10.2,906,,0,tail,filter,1/1T,0.625,free-running,,152,64,155,a whole-note triplet
+8-1,Evolving Filter Pad IV (Bright Slow and Wide),saw,,1,-14,no,II,19,-3.6,155,,0,tail,"filter, pitch",1/2.,0.556,free-running,,183,132,69,
+8-2,Evolving Filter Pad V (Squishy I),pulse 42 %,42,0,,no,II,327,-5.2,289,,160,tail,"filter, pulse width",1/2T,1.25,free-running,,251,144,195,hidden by its nearly open FILTER (251)
+8-3,Evolving Filter Pad VI (Squishy II),pulse 34 %,34,0,,no,I,235,-7.6,257,,0,tail,"filter, pitch",1/2,0.833,free-running,hidden,212,81,165,first misread as a 2.53 Hz vibrato
+8-4,Evolving Filter Pad VII (Blossoming I),saw,,1,-10,no,II,2001,-9.2,570,,0,tail,"filter, pitch",1/1T,0.625,free-running,,84,64,255,a whole-note triplet
+8-5,Evolving Filter Pad VII (Blossoming II),"saw spectrum, envelope PWM per Standing",,0,-13,no,I,1880,-0.3,,,0,tail,none,,,,,116,178,255,
+8-6,Decaying Filter Pad (Blossoming III),pulse 33 %,33,1,3,no,I,7,-34.4,33,,0,pluck,pitch,1/8T,5.0,free-running,0.91,157,148,0,
+8-7,Sample and Hold Pad,pulse 28 %,28,0,,no,I+II,173,-0.1,1541,,0,tail,"filter, sample and hold",1/16.,4.444,restarts,,28,159,146,tested at 150 BPM (6.67 Hz)
+8-8,Plectrum Tremolo Pad,saw,,1,0,no,II,6,-9.7,746,,0,tail,filter,1/32,13.333,restarts,,105,255,0,"a 1/32 at 60, 70 and 100 BPM"

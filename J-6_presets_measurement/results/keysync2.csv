@@ -1,0 +1,29 @@
+sound,tempo_bpm,chorus,measurement,rate_hz,nearest_note_value,deviation_pct,concentration_re_note_on,concentration_re_take,verdict,rate_from
+8-8,60.0,II,vibrato,8.0,1/32,0.0,1.0,0.2,restarts with each note,long note
+8-8,60.0,II,vibrato,16.0,1/64,0.0,1.0,0.16,restarts with each note,long note
+8-8,60.0,II,filter LFO,8.0,1/32,0.0,1.0,0.2,restarts with each note,long note
+8-8,60.0,II,filter LFO,16.0,1/64,0.0,1.0,0.17,restarts with each note,long note
+8-8,60.0,II,PWM,8.0,1/32,0.0,1.0,0.22,restarts with each note,long note
+8-8,70.0,II,vibrato,9.333,1/32,0.0,1.0,0.42,restarts with each note,long note
+8-8,70.0,II,vibrato,18.667,1/64,0.0,1.0,0.23,restarts with each note,long note
+8-8,70.0,II,filter LFO,9.333,1/32,0.0,1.0,0.42,restarts with each note,long note
+8-8,70.0,II,filter LFO,18.667,1/64,0.0,1.0,0.22,restarts with each note,long note
+8-8,70.0,II,PWM,9.333,1/32,0.0,1.0,0.41,restarts with each note,long note
+5-3,100.0,on,PWM,0.833,1/2,0.0,0.39,0.84,unclear,long note
+5-3,100.0,on,filter LFO,0.833,1/2,0.0,0.21,0.96,free-running,long note
+5-3,60.0,on,PWM,0.5,1/2,0.0,0.4,0.99,free-running,long note
+5-3,60.0,on,filter LFO,0.5,1/2,0.0,0.39,0.99,free-running,long note
+6-3,100.0,II,filter LFO,6.813,1/16,2.2,0.26,0.28,unclear,long note
+6-3,100.0,II,audio-rate component,53.333,1/128,0.0,1.0,0.62,restarts with each note,long note
+6-3,60.0,II,audio-rate component,32.0,1/128,0.0,1.0,0.41,restarts with each note,long note
+6-3,60.0,II,PWM,3.855,1/16,-3.6,0.29,0.64,unclear,long note
+8-2,100.0,II,stepped brightness,1.25,1/2T,0.0,0.36,0.93,free-running,long note
+8-2,60.0,II,stepped brightness,0.75,1/2T,0.0,0.36,0.9,free-running,long note
+3-6,100.0,I,filter LFO,1.667,1/4,0.0,0.16,0.92,free-running,long note
+3-6,100.0,I,filter LFO,3.962,1/16.,-10.9,0.26,0.3,unclear,long note
+5-5,100.0,II,,,,,,,no LFO found,
+5-8,100.0,II,stepped brightness,0.556,1/2.,0.0,0.37,0.91,free-running,long note
+5-8,100.0,II,filter LFO,0.556,1/2.,0.0,0.93,0.32,restarts with each note,long note
+7-2,100.0,II,vibrato,2.5,1/4T,0.0,0.19,1.0,free-running,long note
+7-2,100.0,II,PWM,5.0,1/8T,0.0,0.33,0.96,free-running,long note
+8-3,100.0,I,filter LFO,0.833,1/2,0.0,0.13,0.98,free-running,long note

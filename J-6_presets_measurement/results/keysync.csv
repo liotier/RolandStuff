@@ -1,0 +1,57 @@
+sound,tempo_bpm,chorus,measurement,rate_hz,nearest_note_value,deviation_pct,concentration_re_note_on,concentration_re_take,verdict
+1-7,100.0,I,PWM,2.5,1/4T,0.0,0.33,0.92,free-running
+2-6,100.0,on,filter LFO,2.5,1/4T,0.0,0.26,1.0,free-running
+2-6,100.0,on,PWM,4.962,1/8T,-0.8,0.04,0.12,unclear
+2-6,100.0,on,vibrato,7.498,1/16,12.5,0.62,1.0,free-running
+2-7,100.0,II,vibrato,3.333,1/8,0.0,0.35,0.99,free-running
+2-8,100.0,I,vibrato,4.444,1/16.,0.0,0.35,1.0,free-running
+2-8,100.0,I,filter LFO,4.444,1/16.,0.0,0.37,1.0,free-running
+3-6,,I,,,,,,,no LFO found
+3-8,100.0,Off,vibrato,4.444,1/16.,0.0,0.35,1.0,free-running
+4-1,100.0,II,filter LFO,1.25,1/2T,0.0,0.08,1.0,free-running
+4-1,100.0,II,vibrato,1.25,1/2T,0.0,0.04,1.0,free-running
+4-3,100.0,II,filter LFO,0.556,1/2.,0.0,0.15,0.99,free-running
+4-4,100.0,II,vibrato,5.0,1/8T,0.0,0.25,1.0,free-running
+5-1,100.0,on,vibrato,2.5,1/4T,0.0,0.23,1.0,free-running
+5-2,100.0,Off,vibrato,4.444,1/16.,0.0,0.36,1.0,free-running
+5-3,100.0,on,PWM,4.297,1/16.,-3.3,0.22,0.08,unclear
+5-4,100.0,II,PWM,3.333,1/8,0.0,0.41,0.97,free-running
+5-5,,II,,,,,,,no LFO found
+5-6,100.0,II,filter LFO,4.443,1/16.,-0.0,1.0,0.36,restarts with each note
+5-6,100.0,II,vibrato,4.443,1/16.,-0.0,1.0,0.36,restarts with each note
+5-6,100.0,II,PWM,4.44,1/16.,-0.1,1.0,0.38,restarts with each note
+5-7,100.0,Off,PWM,5.0,1/8T,0.0,0.25,1.0,free-running
+5-7,100.0,Off,filter LFO,5.0,1/8T,0.0,0.25,1.0,free-running
+5-7,100.0,Off,vibrato,5.0,1/8T,0.0,0.24,1.0,free-running
+5-8,,II,,,,,,,no LFO found
+6-2,100.0,Off,vibrato,5.0,1/8T,0.0,0.24,1.0,free-running
+6-3,100.0,II,filter LFO,6.808,1/16,2.1,0.4,0.22,unclear
+6-4,100.0,Off,vibrato,4.444,1/16.,0.0,0.36,1.0,free-running
+6-5,100.0,Off,filter LFO,5.0,1/8T,0.0,0.25,1.0,free-running
+6-5,100.0,Off,vibrato,5.0,1/8T,0.0,0.24,1.0,free-running
+6-7,100.0,Off,vibrato,5.0,1/8T,0.0,0.25,1.0,free-running
+6-8,100.0,Off,vibrato,3.333,1/8,0.0,0.35,1.0,free-running
+7-1,100.0,II,filter LFO,2.222,1/8.,0.0,0.35,1.0,free-running
+7-1,100.0,II,vibrato,2.222,1/8.,0.0,0.33,1.0,free-running
+7-2,,II,,,,,,,no LFO found
+7-3,100.0,II,filter LFO,4.444,1/16.,0.0,0.35,1.0,free-running
+7-3,100.0,II,PWM,4.433,1/16.,-0.3,0.12,0.77,unclear
+7-3,100.0,II,vibrato,4.444,1/16.,0.0,0.35,1.0,free-running
+7-4,100.0,II,filter LFO,2.222,1/8.,0.0,0.34,1.0,free-running
+7-4,100.0,II,vibrato,2.222,1/8.,0.0,0.35,1.0,free-running
+7-5,100.0,I,vibrato,8.889,1/32.,0.0,0.25,0.99,free-running
+7-6,100.0,II,filter LFO,2.5,1/4T,0.0,0.29,1.0,free-running
+7-6,100.0,II,vibrato,2.5,1/4T,0.0,0.25,1.0,free-running
+7-7,100.0,II,filter LFO,3.333,1/8,0.0,0.35,0.99,free-running
+7-8,100.0,II,filter LFO,0.625,1/1T,0.0,0.07,1.0,free-running
+8-1,100.0,II,filter LFO,0.556,1/2.,0.0,0.13,1.0,free-running
+8-1,100.0,II,vibrato,0.556,1/2.,0.0,0.02,1.0,free-running
+8-2,100.0,II,filter LFO,1.41,1/2T,12.8,0.65,0.21,unclear
+8-3,,I,,,,,,,no LFO found
+8-4,100.0,II,filter LFO,0.522,1/2.,-6.1,0.28,0.06,unclear
+8-4,100.0,II,vibrato,0.625,1/1T,0.0,0.05,0.99,free-running
+8-6,100.0,I,vibrato,5.0,1/8T,0.0,0.25,1.0,free-running
+8-7,150.0,on,stepped brightness,6.659,1/16.,-0.1,1.0,0.39,restarts with each note
+8-8,100.0,II,filter LFO,13.333,1/32,-0.0,1.0,0.24,restarts with each note
+8-8,100.0,II,vibrato,13.33,1/32,-0.0,1.0,0.35,restarts with each note
+8-8,100.0,II,PWM,13.327,1/32,-0.0,1.0,0.46,restarts with each note

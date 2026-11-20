@@ -1,0 +1,389 @@
+#!/usr/bin/env python3
+"""Inspect, harvest and generate Roland J-6 pattern files (J6_PTNnn.PRM).
+
+The J-6 (system program 1.02) backs up each of its 64 patterns as an ASCII
+file J6_PTN01.PRM ... J6_PTN64.PRM: 23 header lines "KEY<TAB>= value", then
+64 "BAR n<TAB>= ..." lines, LF line endings. Files are copied off the unit in
+backup mode and loaded back through its RESTORE folder.
+
+  inspect  BACKUP_DIR
+      Print the sound-related fields of the 64 patterns.
+  defaults HARVEST_DIR -o defaults.csv [--before ORIGINAL_DIR]
+      Read the per-sound defaults from a "harvest" backup, in which pattern n
+      was given sound n on the unit (1-1 -> 1-1 ... 8-8 -> 8-8).
+  generate --template FILE --out DIR [--defaults defaults.csv] [options]
+      Write a complete set of 64 patterns for RESTORE, pattern n = sound n,
+      with chosen control values and the delay and reverb levels at 0.
+
+Standard library only, Python >= 3.8.
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+N = 64
+KNOBS = ("FILTER", "RESONANCE", "ENV", "ATTACK")
+# Values in freshly initialised patterns. On a v1.02 unit, choosing a sound sets
+# ENV to 128 for every sound but loads a per-sound ATTACK (36 of 64 non-zero).
+NEUTRAL = {"ENV": 128, "ATTACK": 0}
+# Values the J-6 writes when it initialises a pattern (menu "init"): no phrase
+# style, so notes arriving over MIDI are not shaped by STYLE / VARIATION.
+INIT_STYLE = {"STYLE": -1, "VARIATION": -1, "STYLE_SW": 0}
+# FILTER / RESONANCE observed on a v1.02 unit after choosing the sound on the
+# panel. Sound 1-1 (85 / 24) is left out: an initialised pattern holds the same
+# values, so it cannot tell a real harvest from untouched patterns.
+REFERENCE = {2: (121, 79), 3: (128, 144)}
+LINE = re.compile(r"^(?P<key>[A-Z_]+(?: \d+)?)\t= (?P<value>.*)$")
+
+
+def label(i: int) -> str:
+    """0-based pattern or sound index -> label as on the panel (1-1 ... 8-8)."""
+    return f"{i // 8 + 1}-{i % 8 + 1}"
+
+
+class Prm:
+    """One J6_PTNnn.PRM file, parsed so that it can be re-written byte for byte."""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        raw = self.path.read_bytes()
+        text = raw.decode("ascii")  # anything else means the format is not understood
+        self.newline = "\r\n" if "\r\n" in text else "\n"
+        self.final_newline = text.endswith(self.newline)
+        lines = text.split(self.newline)
+        if self.final_newline:
+            lines.pop()
+        self.keys: list[str] = []
+        self.values: dict[str, str] = {}
+        for no, line in enumerate(lines, 1):
+            m = LINE.match(line)
+            if m is None:
+                raise ValueError(f"{self.path}:{no}: unexpected line {line!r}")
+            key = m["key"]
+            if key in self.values:
+                raise ValueError(f"{self.path}:{no}: duplicate key {key}")
+            self.keys.append(key)
+            self.values[key] = m["value"]
+        if self.render() != raw:
+            raise ValueError(f"{self.path}: cannot reproduce the file byte for byte")
+
+    def __getitem__(self, key: str) -> int:
+        return int(self.values[key])
+
+    def bars_empty(self) -> bool:
+        for key in self.keys:
+            if key.startswith("BAR "):
+                fields = dict(f.split("=", 1) for f in self.values[key].split())
+                if any(fields.get(f"NOTE{i}", "-1") != "-1" for i in range(1, 5)):
+                    return False
+        return True
+
+    def render(self, overrides: dict | None = None, omit=()) -> bytes:
+        overrides = overrides or {}
+        unknown = (set(overrides) | set(omit)) - set(self.values)
+        if unknown:
+            raise KeyError(f"{self.path}: no such keys {sorted(unknown)}")
+        lines = [f"{k}\t= {overrides.get(k, self.values[k])}" for k in self.keys if k not in omit]
+        text = self.newline.join(lines) + (self.newline if self.final_newline else "")
+        return text.encode("ascii")
+
+
+def load_backup(directory) -> list[Prm]:
+    """The 64 patterns of a backup folder (the BACKUP folder or its parent)."""
+    directory = Path(directory)
+    if not (directory / "J6_PTN01.PRM").exists() and (directory / "BACKUP").is_dir():
+        directory = directory / "BACKUP"
+    missing = [n for n in range(1, N + 1) if not (directory / f"J6_PTN{n:02d}.PRM").is_file()]
+    if missing:
+        sys.exit(f"{directory}: {len(missing)} pattern file(s) missing, "
+                 f"first one J6_PTN{missing[0]:02d}.PRM")
+    return [Prm(directory / f"J6_PTN{n:02d}.PRM") for n in range(1, N + 1)]
+
+
+def cmd_inspect(args) -> None:
+    patterns = load_backup(args.dir)
+    cols = ("FILTER", "RESONANCE", "ENV", "ATTACK", "LEVEL", "TEMPO",
+            "DELAY", "REVERB", "TRANSPOSE", "STYLE_SW")
+    print(f"{'pattern':<8}{'sound':>6}" + "".join(f"{c[:9]:>10}" for c in cols) + "  bars")
+    for i, p in enumerate(patterns):
+        print(f"{label(i):<8}{label(p['SOUND']):>6}"
+              + "".join(f"{p.values.get(c, '-'):>10}" for c in cols)
+              + ("  empty" if p.bars_empty() else "  notes"))
+
+
+def cmd_defaults(args) -> None:
+    after = load_backup(args.dir)
+    rows, wrong = [], []
+    for i, p in enumerate(after):
+        missing = [k for k in KNOBS if k not in p.values]
+        valid = p["SOUND"] == i and not missing
+        if missing:
+            wrong.append(f"pattern {label(i)} lacks {', '.join(missing)}")
+        elif not valid:
+            wrong.append(f"pattern {label(i)} holds sound {label(p['SOUND'])}")
+        rows.append({"sound": label(i), "sound_index": i,
+                     **{k: (p[k] if k in p.values else "") for k in KNOBS}, "valid": int(valid)})
+    with open(args.output, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["sound", "sound_index", *KNOBS, "valid"])
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"wrote {args.output}: defaults for {N - len(wrong)} of {N} sounds")
+    for msg in wrong:
+        print(f"  not usable: {msg}")
+    matches = []
+    for s, expected in REFERENCE.items():
+        found = (rows[s]["FILTER"], rows[s]["RESONANCE"])
+        matches.append(bool(rows[s]["valid"]) and found == expected)
+        print(f"reference sound {label(s)}: expected {expected[0]}/{expected[1]}, "
+              f"found {found[0]}/{found[1]} -> {'OK' if matches[-1] else 'MISMATCH'}")
+    if not all(matches):
+        print("the reference values do not match: these are not the J-6's defaults")
+    for k in ("ENV", "ATTACK"):
+        counts = Counter(r[k] for r in rows if r["valid"])
+        print(f"{k} values found: " + ", ".join(f"{v} (x{n})" for v, n in sorted(counts.items())))
+
+    if args.before:
+        before = load_backup(args.before)
+        already = [label(i) for i, b in enumerate(before) if b["SOUND"] == i]
+        if already:
+            print("warning: these patterns already held their own sound before the harvest, "
+                  "so their defaults may not have been reloaded: " + ", ".join(already))
+        # Did choosing a sound reset ENV / ATTACK ? Only patterns that held
+        # another sound and a non-neutral value beforehand can tell.
+        for k in ("ENV", "ATTACK"):
+            kept, changed = [], []
+            for i, (b, a) in enumerate(zip(before, after)):
+                if (k not in a.values or k not in b.values or a["SOUND"] != i
+                        or b["SOUND"] == i or b[k] == NEUTRAL[k]):
+                    continue
+                (kept if a[k] == b[k] else changed).append(f"{label(i)}: {b[k]}->{a[k]}")
+            if not kept and not changed:
+                print(f"{k}: no pattern held a non-neutral value before, so no conclusion")
+            else:
+                print(f"{k}: choosing a sound kept the old value in {len(kept)} pattern(s), "
+                      f"changed it in {len(changed)}")
+                for line in changed:
+                    print(f"  changed {line}")
+
+
+def knob_value(text: str):
+    if text == "default":
+        return text
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError("expected 0-255 or 'default'")
+    if not 0 <= value <= 255:
+        raise argparse.ArgumentTypeError("expected 0-255 or 'default'")
+    return value
+
+
+def read_defaults(path) -> dict[int, dict[str, int]]:
+    table = {}
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            if int(row["valid"]):
+                table[int(row["sound_index"])] = {k: int(row[k]) for k in KNOBS}
+    return table
+
+
+def sweep_plan() -> dict[int, dict]:
+    """Built-in plan 'sweep': 16 steps (0, 17 ... 255) each of FILTER on sound
+    6-8, RESONANCE on 2-7, ATTACK on 2-7 and ENV on 1-3, other knobs at the
+    sound's defaults."""
+    plan, n = {}, 1
+    for snd, knob in (("6-8", "FILTER"), ("2-7", "RESONANCE"), ("2-7", "ATTACK"), ("1-3", "ENV")):
+        for v in range(0, 256, 17):
+            plan[n] = {"sound": (int(snd[0]) - 1) * 8 + int(snd[2]) - 1, knob: v}
+            n += 1
+    return plan
+
+
+def filters_plan() -> dict[int, dict]:
+    """Built-in plan 'filters': for each of 6-8, 2-7, 4-6 and 4-4, a reference
+    pattern (FILTER 255, RESONANCE 0) then FILTER 17, 34 ... 238 at RESONANCE
+    255 (patterns 1-60); then sound 1-3 at ENV 221, 238 and 255 (61-63)."""
+    plan, n = {}, 1
+    for snd in ("6-8", "2-7", "4-6", "4-4"):
+        idx = (int(snd[0]) - 1) * 8 + int(snd[2]) - 1
+        plan[n] = {"sound": idx, "FILTER": 255, "RESONANCE": 0}
+        n += 1
+        for v in range(17, 239, 17):
+            plan[n] = {"sound": idx, "FILTER": v, "RESONANCE": 255}
+            n += 1
+    for v in (221, 238, 255):
+        plan[n] = {"sound": 2, "ENV": v}
+        n += 1
+    return plan
+
+
+def keysync_plan() -> dict[int, dict]:
+    """Built-in plan 'keysync': pattern n = sound n at its defaults, except
+    8-7 at 150 BPM: its sample-and-hold steps (6.67 Hz there) stand out from
+    its chorus better than at 100 BPM (4.44 Hz)."""
+    return {63: {"sound": 62, "BPM": 150.0}}
+
+
+def closing_plan() -> dict[int, dict]:
+    """Built-in plan 'closing': 8-8 at 60 and 70 BPM (patterns 1-2); 5-3, 6-3
+    and 8-2, whose LFO phase was unclear, at 100 and 60 BPM (3-8); 3-6, 5-5,
+    5-8, 7-2 and 8-3, where no LFO was found on short notes, at 100 BPM (9-13)
+    and 60 BPM (16-20); 6-5 and 5-6, a free-running and a restarting LFO, as
+    controls for the chord test (14-15)."""
+    def idx(lab):
+        return (int(lab[0]) - 1) * 8 + int(lab[2]) - 1
+    steps = [("8-8", 60), ("8-8", 70), ("5-3", 100), ("5-3", 60), ("6-3", 100), ("6-3", 60),
+             ("8-2", 100), ("8-2", 60), ("3-6", 100), ("5-5", 100), ("5-8", 100), ("7-2", 100),
+             ("8-3", 100), ("6-5", 100), ("5-6", 100), ("3-6", 60), ("5-5", 60), ("5-8", 60),
+             ("7-2", 60), ("8-3", 60)]
+    return {n: {"sound": idx(lab), "BPM": float(bpm)} for n, (lab, bpm) in enumerate(steps, 1)}
+
+
+def final_plan() -> dict[int, dict]:
+    """Built-in plan 'final': 8-2 at its defaults (FILTER 251, nearly open)
+    at 100 and 60 BPM (patterns 1-2, 90 s notes: an LFO slower than 0.25 Hz);
+    8-2 at FILTER 140 and 100 (3-4: a filter LFO the open filter hides);
+    5-5 at FILTER 255 / RESONANCE 0, 120 / 0 and its defaults (5-7: a filter
+    movement against the noise of its source)."""
+    return {1: {"sound": 57, "BPM": 100.0}, 2: {"sound": 57, "BPM": 60.0},
+            3: {"sound": 57, "BPM": 100.0, "FILTER": 140}, 4: {"sound": 57, "BPM": 100.0, "FILTER": 100},
+            5: {"sound": 36, "BPM": 100.0, "FILTER": 255, "RESONANCE": 0},
+            6: {"sound": 36, "BPM": 100.0, "FILTER": 120, "RESONANCE": 0},
+            7: {"sound": 36, "BPM": 100.0}}
+
+
+def finalfinal_plan() -> dict[int, dict]:
+    """Built-in plan 'finalfinal': 5-8 at 100 and 60 BPM (patterns 1-2), whose
+    slow LFO's phase readings conflict; 8-1 (a free-running LFO at the same
+    0.556 Hz) and 5-6 (a restarting one) at 100 BPM as controls (3-4)."""
+    return {1: {"sound": 39, "BPM": 100.0}, 2: {"sound": 39, "BPM": 60.0},
+            3: {"sound": 56, "BPM": 100.0}, 4: {"sound": 37, "BPM": 100.0}}
+
+
+BUILTIN_PLANS = {"sweep": sweep_plan, "filters": filters_plan, "keysync": keysync_plan,
+                 "closing": closing_plan, "final": final_plan, "finalfinal": finalfinal_plan}
+
+
+def read_plan(path) -> dict[int, dict]:
+    """Pattern plan: CSV with columns pattern (1-64 or a panel label), sound
+    (panel label) and optionally FILTER, RESONANCE, ENV, ATTACK, BPM. Empty
+    cells fall back to the command-line values or the sound's defaults."""
+    plan = {}
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            pat = row["pattern"].strip()
+            n = (int(pat[0]) - 1) * 8 + int(pat[2]) if "-" in pat else int(pat)
+            snd = row["sound"].strip()
+            step = {"sound": (int(snd[0]) - 1) * 8 + int(snd[2]) - 1}
+            for k in (*KNOBS, "BPM"):
+                v = (row.get(k) or "").strip()
+                if v:
+                    step[k] = float(v) if k == "BPM" else int(v)
+                    if k in KNOBS and not 0 <= step[k] <= 255:
+                        sys.exit(f"{path}: pattern {pat}: {k} must be 0-255")
+            plan[n] = step
+    return plan
+
+
+def cmd_generate(args) -> None:
+    template = Prm(args.template)
+    if not template.bars_empty():
+        sys.exit(f"{args.template} has notes in its bars: use a freshly initialised pattern")
+    omit = tuple(k.strip().upper() for k in args.omit.split(",")) if args.omit else ()
+    if any(k not in KNOBS for k in omit):
+        sys.exit(f"--omit accepts only {', '.join(KNOBS)}")
+    wants_default = [k for k in KNOBS if k not in omit and getattr(args, k.lower()) == "default"]
+    if wants_default and not args.defaults:
+        sys.exit(f"'default' for {', '.join(wants_default)} needs --defaults "
+                 "(a CSV written by the 'defaults' subcommand), or give numbers")
+    defaults = read_defaults(args.defaults) if args.defaults else {}
+    plan = {}
+    if args.plan:
+        plan = BUILTIN_PLANS[args.plan]() if args.plan in BUILTIN_PLANS else read_plan(args.plan)
+
+    out = Path(args.out)
+    if out.exists() and any(out.iterdir()):
+        sys.exit(f"{out} exists and is not empty; choose a new directory")
+    restore = out / "RESTORE"
+    restore.mkdir(parents=True)
+
+    manifest = []
+    for i in range(N):
+        step = plan.get(i + 1, {})
+        sound = step.get("sound", i)
+        values = {"SOUND": sound, "DELAY": 0, "REVERB": 0, "TRANSPOSE": 0, **INIT_STYLE}
+        for k in KNOBS:
+            if k in omit:
+                continue
+            value = step.get(k, getattr(args, k.lower()))
+            if value == "default":
+                if sound not in defaults:
+                    sys.exit(f"{args.defaults} has no valid default {k} for sound {label(sound)}")
+                value = defaults[sound][k]
+            values[k] = value
+        bpm = step.get("BPM", args.bpm)
+        if bpm is not None:
+            values["TEMPO"] = round(bpm * 100)
+        if args.level is not None:
+            values["LEVEL"] = args.level
+        path = restore / f"J6_PTN{i + 1:02d}.PRM"
+        path.write_bytes(template.render(values, omit))
+        check = Prm(path)  # re-read: same keys in the same order, intended values
+        if (check.keys != [k for k in template.keys if k not in omit]
+                or any(check[k] != int(v) for k, v in values.items())):
+            sys.exit(f"{path}: verification failed")
+        manifest.append({"pattern": label(i), "program_change": i, "sound": label(sound),
+                         **{k: (check[k] if k in check.values else "") for k in
+                            (*KNOBS, "TEMPO", "LEVEL")}})
+
+    with open(out / "manifest.csv", "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(manifest[0]))
+        writer.writeheader()
+        writer.writerows(manifest)
+    print(f"wrote {N} patterns to {restore}/ and {out / 'manifest.csv'}")
+    print("copy the 64 .PRM files into the RESTORE folder of the J-6 drive, eject, press [CHORD]")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("inspect", help="list the sound-related fields of a backup")
+    p.add_argument("dir", help="BACKUP folder (or its parent)")
+    p.set_defaults(func=cmd_inspect)
+
+    p = sub.add_parser("defaults", help="per-sound defaults from a harvest backup")
+    p.add_argument("dir", help="BACKUP folder taken after the harvest pass")
+    p.add_argument("-o", "--output", required=True, help="CSV file to write")
+    p.add_argument("--before", help="BACKUP folder taken before the harvest pass")
+    p.set_defaults(func=cmd_defaults)
+
+    p = sub.add_parser("generate", help="write 64 patterns for RESTORE (pattern n = sound n)")
+    p.add_argument("--template", required=True,
+                   help="a freshly initialised pattern file from your own backup")
+    p.add_argument("--out", required=True, help="new directory to create")
+    p.add_argument("--defaults", help="CSV from the 'defaults' subcommand")
+    p.add_argument("--filter", type=knob_value, default="default", help="0-255 or 'default'")
+    p.add_argument("--resonance", type=knob_value, default="default", help="0-255 or 'default'")
+    p.add_argument("--env", type=knob_value, default="default", help="0-255 or 'default'")
+    p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
+    p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
+    p.add_argument("--level", type=int, help="pattern level, default: as in the template")
+    p.add_argument("--plan", help="'sweep', 'filters', 'keysync', 'closing', 'final' or 'finalfinal' (built in), or a CSV giving each pattern its sound "
+                   "and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
+    p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
+                   "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")
+    p.set_defaults(func=cmd_generate)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

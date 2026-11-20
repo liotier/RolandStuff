@@ -1,0 +1,10 @@
+sound,tempo_bpm,chorus,measurement,rate_hz,nearest_note_value,deviation_pct,concentration_re_note_on,concentration_re_take,verdict,rate_from
+5-8,100.0,II,stepped brightness,0.556,1/2.,0.0,0.39,0.98,free-running,long note
+5-8,100.0,II,filter LFO,0.556,1/2.,0.0,0.33,0.99,free-running,long note
+5-8,60.0,II,stepped brightness,0.333,1/2.,0.0,0.39,1.0,free-running,long note
+5-8,60.0,II,filter LFO,0.333,1/2.,0.0,0.4,0.99,free-running,long note
+8-1,100.0,II,filter LFO,0.556,1/2.,0.0,0.37,1.0,free-running,
+8-1,100.0,II,vibrato,0.556,1/2.,0.0,0.37,1.0,free-running,
+5-6,100.0,II,filter LFO,4.442,1/16.,-0.1,1.0,0.29,restarts with each note,
+5-6,100.0,II,vibrato,4.443,1/16.,-0.0,1.0,0.26,restarts with each note,
+5-6,100.0,II,PWM,4.44,1/16.,-0.1,1.0,0.29,restarts with each note,

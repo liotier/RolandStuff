@@ -1,0 +1,9 @@
+sound,note,onset_s,measurement,rate_hz,amplitude,phase_re_clock_deg,phase_re_note_on_deg
+1-4,chord_45,0.0,level,5.0,0.692,0.0,0.0
+1-4,chord_50,0.25,level,5.0,1.1278,0.0,270.0
+1-4,chord_54,0.51,level,5.0,1.6451,0.0,162.0
+1-4,chord_59,1.05,level,5.0,2.6575,0.0,270.0
+1-5,chord_45,0.0,level,4.444,0.7175,10.0,10.0
+1-5,chord_50,0.25,level,4.444,1.1673,50.0,10.0
+1-5,chord_54,0.51,level,4.444,1.7026,106.0,10.0
+1-5,chord_59,1.05,level,4.444,2.764,250.0,10.0
