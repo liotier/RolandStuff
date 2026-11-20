@@ -42,6 +42,10 @@ longnote   one 20 s A2 note: every modulation's exact rate, whether it is a
 keysync2   as keysync, eight notes, sounds at 60, 70 and 100 BPM
 keysync3   as keysync, eight notes of 8 s, measured from 1 s after each
            note-on and fitted from 2 s: slow LFOs past their envelope
+open       (with default/ and the keysync results in the output folder)
+           destinations: what each LFO moves, from its swing in pitch,
+           brightness and even-harmonic share with the filter at the
+           sound's setting and fully open
 chord      four notes entering at 0, 0.25, 0.51 and 1.05 s: whether the
            voices share one LFO phase or each starts its own at its note-on
 
@@ -1247,6 +1251,93 @@ def chord(root: Path, out: Path) -> None:
     write(out / "chord_notes.csv", rows)
     write(out / "chord.csv", summary)
 
+# ---------------------------------------------------------------- destinations
+def established_rates(out: Path) -> dict[str, float]:
+    """Each sound's LFO rate at 100 BPM as the phase experiments settled it:
+    the first decisive verdict per sound in keysync, keysync2 and keysync3
+    (rows come strongest first; later files override earlier ones), 8-7's
+    sample and hold and 6-3's audio-rate modulation excepted. Plucks measured
+    only on the env255 pass add the main analysis's rate, set to its note
+    value, unless it lies on a chorus harmonic or at the 0.3 Hz floor."""
+    merged = {}
+    for name in ("keysync.csv", "keysync2.csv", "keysync3.csv"):
+        path = out / name
+        if not path.exists():
+            continue
+        mine = {}
+        for row in csv.DictReader(open(path)):
+            if row["verdict"] in ("free-running", "restarts with each note") and row.get("rate_hz") \
+                    and float(row.get("tempo_bpm") or 100) == 100 and row.get("measurement") != "audio-rate component" \
+                    and row["sound"] != "8-7":
+                mine.setdefault(row["sound"], float(row["rate_hz"]))
+        merged.update(mine)
+    meas = out / "measurements.csv"
+    if meas.exists():
+        beats = dict((nm, bt) for bt, nm in A.NOTE_VALUES)
+        for row in csv.DictReader(open(meas)):
+            if row["sound"] in merged or row.get("mod_pass") != "env255":
+                continue
+            flags = row.get("lfo_flags") or ""
+            for kind in ("pwm", "filter_lfo", "vibrato"):
+                hz, nv = row.get(f"{kind}_hz"), row.get(f"{kind}_note")
+                if hz and nv and float(hz) >= 0.35 and f"{kind} also on chorus harmonic" not in flags:
+                    merged[row["sound"]] = 100 / 60 / beats[nv]
+                    break
+    return merged
+
+
+def destinations(root: Path, out: Path) -> None:
+    """What each LFO moves. At the sound's settled LFO rate, the swing
+    (p95-p5 of the series band-limited to rate +- rate/4) of the pitch
+    (cents), the brightness (octaves) and the even harmonics' share, on the
+    6 s A2 note of the default pass and of the open pass (FILTER 255,
+    RESONANCE 0). A filter LFO's brightness swing, and the pitch pull a
+    resonant sweep causes, shrink with the filter open; a vibrato and a
+    pulse-width modulation, both in the oscillator, stay. Plucks too short in
+    both passes are read on the env255 pass. The swing's height against the
+    median of the spectrum 0.3-18 Hz is given in brackets."""
+    rates = established_rates(out)
+    if not rates:
+        print("  no settled LFO rates (keysync results) in the output folder")
+        return
+    rows = []
+    for lab, f in sorted(rates.items()):
+        i = (int(lab[0]) - 1) * 8 + int(lab[2]) - 1
+        row = {"sound": lab, "rate_hz": r(f, 3)}
+        for pas in ("default", "open", "env255"):
+            js = root / pas / f"{pas}_P{i + 1:02d}_{A.label(i)}.json"
+            if not js.exists():
+                continue
+            tk = A.Take(js)
+            end = min(A.audible_until(tk, 6.0), 5.95)
+            if end < 1.6:
+                continue
+            tr = A.track(tk, 0.1, end, A.A2)
+            for col, kind in ((0, "pitch_cents"), (1, "brightness_oct"), (2, "even_share")):
+                left, right = A._clean(tr[:, 0, col]), A._clean(tr[:, 1, col])
+                if left is None or right is None:
+                    continue
+                mean = (left + right) / 2
+                bm = A.band(np.concatenate([mean, np.zeros(len(mean))]), f, 0.01, width=max(f / 4, 0.15))[:len(mean)]
+                spec = np.abs(np.fft.rfft(mean * np.hanning(len(mean)), 1 << 15))
+                fr = np.fft.rfftfreq(1 << 15, 0.01)
+                base = max(np.median(spec[(fr > 0.3) & (fr < 18)]), 1e-12)
+                k = int(np.argmin(abs(fr - f)))
+                height = float(spec[max(k - 20, 0): k + 21].max() / base)
+                row[f"{pas}_{kind}"] = r(float(np.percentile(bm, 95) - np.percentile(bm, 5)), 3)
+                row[f"{pas}_{kind}_height"] = r(height, 0)
+        rows.append(row)
+        cells = []
+        for pas in ("default", "open"):
+            if f"{pas}_pitch_cents" in row:
+                cells.append(f"{pas}: pitch {row[f'{pas}_pitch_cents']:.1f} c, brightness "
+                             f"{row[f'{pas}_brightness_oct']:.2f} oct, even share {row[f'{pas}_even_share']:.2f}")
+        if not cells and "env255_pitch_cents" in row:
+            cells.append(f"env255: pitch {row['env255_pitch_cents']:.1f} c, brightness "
+                         f"{row['env255_brightness_oct']:.2f} oct, even share {row['env255_even_share']:.2f}")
+        print(f"  {lab} at {f:.3f} Hz: " + " | ".join(cells))
+    write(out / "destinations.csv", rows)
+
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1266,7 +1357,8 @@ def main() -> None:
                      ("longnote", run_longnote), ("keysync2", lambda a, b: keysync(a, b, "keysync2", known)),
                      ("chord", chord), ("verylong", lambda a, b: longnote(a, b, "verylong")),
                      ("longnote2", lambda a, b: longnote(a, b, "longnote2")),
-                     ("keysync3", lambda a, b: keysync(a, b, "keysync3", known, track_from=1.0, fit_from=2.0))):
+                     ("keysync3", lambda a, b: keysync(a, b, "keysync3", known, track_from=1.0, fit_from=2.0)),
+                     ("open", destinations)):
         if (root / name).is_dir():
             found = True
             print(f"== {name}")

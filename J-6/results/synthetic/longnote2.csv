@@ -1,0 +1,7 @@
+sound,tempo_bpm,FILTER,RESONANCE,chorus,chorus_lfo_hz,measurement,rate_hz,prominence,swing,nearest_note_value,deviation_pct,chorus_harmonic
+1-7,100.0,120,0,on,0.5860/0.8520,filter LFO,4.317,11.1,0.184,1/16.,-2.9,
+1-7,100.0,120,0,on,0.5860/0.8520,filter LFO,1.276,11.1,0.204,1/2T,2.0,
+1-7,100.0,120,0,on,0.5860/0.8520,filter LFO,1.933,8.5,0.205,1/8.,-13.0,
+1-7,100.0,255,0,on,,,,,,,,
+1-8,100.0,120,0,on,,,,,,,,
+1-8,100.0,255,0,on,,,,,,,,
