@@ -302,7 +302,11 @@ def band(s, rate, hop=0.01, width=0.3):
 def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0):
     """The most prominent modulation that moves both channels in phase (a
     chorus sweeps them in opposite phase). Returns rate, prominence, swing
-    (p95-p5 of the band-limited mean of both channels) and the series."""
+    (p95-p5 of the band-limited mean of both channels), the series, and
+    whether the rate sits at the edge of an excluded band: then it is
+    usually the flank of a modulation inside the band, whose true rate is
+    there (a 3.33 Hz LFO reads 3.17 Hz next to the chorus II band at
+    3.52 +- 0.35 Hz)."""
     left, right = _clean(per[:, 0, col]), _clean(per[:, 1, col])
     if left is None or right is None:
         return None
@@ -328,7 +332,8 @@ def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0):
             continue
         if np.corrcoef(bl, br)[0, 1] > 0.5:
             bm = band(mean, rate, hop)
-            return float(rate), float(prom), float(np.percentile(bm, 95) - np.percentile(bm, 5)), mean
+            edge = any(abs(abs(rate - e) - 0.35) < 0.015 for e in exclude)
+            return float(rate), float(prom), float(np.percentile(bm, 95) - np.percentile(bm, 5)), mean, edge
     return None
 
 
@@ -613,6 +618,10 @@ def analyse_sound(takes: dict, idx: int) -> dict:
                     else:
                         flags.append(f"{name} also on chorus harmonic {k}")
                     break
+        for name in found:
+            if found[name][4]:
+                flags.append(f"{name} rate at the edge of a band excluded around the chorus: "
+                             "the true rate is probably inside it")
         row["lfo_flags"] = "; ".join(flags) or None
         for name in ("vibrato", "filter_lfo", "pwm"):
             res = found.get(name)

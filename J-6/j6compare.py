@@ -20,6 +20,18 @@ from openpyxl.comments import Comment
 
 meas_csv, defaults_csv, sheet_xlsx, out = sys.argv[1:5]
 meas = {r["sound"]: r for r in csv.DictReader(open(meas_csv))}
+# Experiment results from j6experiments.py, when present beside the measurements
+from pathlib import Path
+res_dir = Path(meas_csv).parent
+keysync, ftrack = {}, {}
+if (res_dir / "keysync.csv").exists():
+    rank = {"restarts with each note": 0, "free-running": 1, "unclear": 2, "no LFO found": 3}
+    for r in csv.DictReader(open(res_dir / "keysync.csv")):
+        old = keysync.get(r["sound"])
+        if old is None or rank[r["verdict"]] < rank[old["verdict"]]:
+            keysync[r["sound"]] = r
+if (res_dir / "filters_summary.csv").exists():
+    ftrack = {r["sound"]: r for r in csv.DictReader(open(res_dir / "filters_summary.csv"))}
 harv = {r["sound"]: r for r in csv.DictReader(open(defaults_csv))}
 src = openpyxl.load_workbook(sheet_xlsx).worksheets[0]
 keys = "glide octave rate delay dco_lfo pwm pulse saw sub noise hpf freq res env vcf_lfo kybd vca A D preset2 S R chorus notes".split()
@@ -81,6 +93,9 @@ cols = [  # (header, source, key, number format, width, comment)
     ("Delay (sheet)", "sheet", "delay", None, 8, None),
     ("LFO delay (s)", "lfodelay", None, "0.00", 9, "Longest of the vibrato, filter LFO and PWM delays: time from the note-on until the modulation reaches half the depth it has later in the note. Delays shorter than one LFO cycle read 0; a strong onset transient in the same measurement (a filter envelope sweep) can hide a delay. Empty when no LFO was detected."),
     ("Delay agree", "f_delay", None, None, 9, None),
+    ("LFO phase at note-on", "ks_verdict", None, None, 14, "From seven A2 notes at irregular spacing (keysync experiment, sounds with an LFO that sustain): 'restarts with each note' when the LFO's phase is the same at every note-on, 'free-running' when it is the same against the clock. Empty: not tested."),
+    ("LFO rate across notes (Hz)", "ks_rate", None, "0.000", 10, "Rate at which the seven notes' phases agree, to about 0.1 %: the LFO's exact rate. Where it differs from the rate columns, those sit at the edge of a band excluded around the chorus (see LFO flags)."),
+    ("LFO note value", "ks_note", None, None, 8, "Nearest note value at the pattern tempo (100 BPM; 8-7 tested at 150 BPM)."),
     ("LFO flags", "meas", "lfo_flags", None, 28, "The chorus LFO (about 0.545 Hz for I, 0.88 Hz for II) is free-running and shows at its harmonics. Detections on one of them that match no note value were dropped; those listed here match a note value and are kept."),
     ("Pulse (sheet)", "sheet", "pulse", None, 8, None),
     ("Saw (sheet)", "sheet", "saw", None, 7, None),
@@ -103,7 +118,8 @@ cols = [  # (header, source, key, number format, width, comment)
     ("RESONANCE default (0-255)", "harv", "RESONANCE", "0", 10, "Harvested from the J-6."),
     ("ATTACK default (0-255)", "harv", "ATTACK", "0", 9, "Harvested from the J-6 (SHIFT + [ENVELOPE])."),
     ("Kybd (sheet)", "sheet", "kybd", None, 7, None),
-    ("Key tracking (measured)", "meas", "key_tracking", "0.00", 9, "Brightness relative to pitch, A4 against A2, two octaves apart: 1 = cutoff follows the keyboard fully, 0 = fixed cutoff. Approximate."),
+    ("Key tracking (measured)", "meas", "key_tracking", "0.00", 9, "Brightness relative to pitch, A4 against A2, two octaves apart: 1 = cutoff follows the keyboard fully, 0 = fixed cutoff. Approximate: on a sound whose filter is open the brightness follows the oscillator, not the cutoff (4-4 reads 0.63 here, 0.0 in the filter sweep)."),
+    ("Key tracking, filter sweep", "ftrack", None, "0.00", 9, "Octaves of cutoff per octave of pitch, from the resonant peak at notes A1 to A4 over a FILTER sweep at RESONANCE 255 (filters experiment, four sounds)."),
     ("Velocity 40 to 127 (dB)", "meas", "velocity_40_to_127_db", "0.0", 9, "Level difference between A3 at velocity 40 and 127; 20.1 dB corresponds to level proportional to velocity squared."),
     ("Sustain, ENV 0 (dB)", "meas", "env000_sustain_db", "0.0", 9, "Sustain with [ENVELOPE] at 0 (chord-mode take: envelope only)."),
     ("Sustain, ENV 255 (dB)", "meas", "env255_sustain_db", "0.0", 9, "Sustain with [ENVELOPE] at 255 (chord-mode take: envelope only)."),
@@ -132,6 +148,14 @@ for r_i, lab in enumerate(order, 2):
             if key == "lfo_flags" and v == "note too short to measure modulation": v = None
             cell.value = num(v)
         elif kind == "harv": cell.value = num(hv[key])
+        elif kind == "ks_verdict": cell.value = keysync[lab]["verdict"] if lab in keysync else None
+        elif kind == "ks_rate":
+            ks = keysync.get(lab)
+            cell.value = num(ks["rate_hz"]) if ks and ks["verdict"] in ("free-running", "restarts with each note") else None
+        elif kind == "ks_note":
+            ks = keysync.get(lab)
+            cell.value = ks["nearest_note_value"] if ks and ks["verdict"] in ("free-running", "restarts with each note") else None
+        elif kind == "ftrack": cell.value = num(ftrack[lab]["key_tracking"]) if lab in ftrack else None
         elif kind == "lfodelay":
             ds = [num(m.get(f"{k}_delay_s")) for k in ("vibrato", "filter_lfo", "pwm")]
             ds = [d for d in ds if isinstance(d, (int, float))]
@@ -226,19 +250,22 @@ lines = [
     ("The J-6 ignores All Sound Off. The env255 pass waited 10 s between patterns; previous sounds were still audible at -77 to -95 dBFS in 24 takes, negligible against notes at -25 to -45 dBFS.", False),
     ("Octave and sub-oscillator are ambiguous for mixed waveforms: a square plus a saw at one pitch has the same harmonic magnitudes as a sub-oscillator plus a saw an octave up.", False),
     ("LFO detection needs about 1.5 s of sound: plucks are measured on the env255 pass. Rates below 0.3 Hz are not detected. The analysis resolves about 0.2 Hz.", False),
-    ("The LFOs follow the pattern tempo: all 43 LFO detections match a note value at 100 BPM (from dotted half to dotted thirty-second), and in a pass at 150 BPM the 24 LFOs detected at both tempos ran 1.50 times faster (median ratio 1.502) and kept their note value in 22 cases. The LFO delays did not follow: in the seven cases measurable at both tempos they stayed the same (median ratio 0.97, against 0.67 if they followed the tempo), so delays are set in seconds.", False),
+    ("The LFOs follow the pattern tempo. Measured across seven notes (keysync experiment), the rates of 27 sounds' LFOs fall within 0.1 % of a note value at 100 BPM, from a whole-note triplet (0.625 Hz, 7-8 and 8-4) to a thirty-second (13.33 Hz, 8-8). In a pass at 150 BPM the 24 LFOs detected at both tempos ran 1.50 times faster (median ratio 1.502). Rates of 3.17, 2.53 and 0.53 Hz in the rate columns are artifacts: they sit at the edge of a band excluded around a chorus harmonic, and the true rate (3.33, 2.5, 0.556 or 0.625 Hz) lies inside it (flagged in LFO flags; see LFO rate across notes). The LFO delays did not follow the tempo: in the seven cases measurable at both tempos they stayed the same (median ratio 0.97, against 0.67 if they followed the tempo), so delays are set in seconds.", False),
     ("LFO delay: time from the note-on until the modulation reaches half the depth it has later in the note. Delays shorter than one LFO cycle read 0; an onset transient in the same measurement hides a delay (sound 7-7, filter LFO).", False),
     ("Glide is polyphonic: each voice glides from the last pitch it played, so only the settle time is comparable between sounds.", False),
     ("[ENVELOPE] acts on decay, sustain and release together; at 255 every pluck sustains (see the ENV 0 / ENV 255 sustain columns).", False),
     ("", False),
     ("Further experiments (results/*.csv in the repository)", True),
-    ("Sample and hold: 8-7's random filter steps come at 4.44 Hz at 100 BPM and 6.67 Hz at 150 BPM, a dotted sixteenth at both: the S&H clock follows the tempo.", False),
+    ("Sample and hold: 8-7's random filter steps come at 4.44 Hz at 100 BPM and 6.67 Hz at 150 BPM, a dotted sixteenth at both: the S&H clock follows the tempo, and it restarts with each note.", False),
+    ("LFO phase (keysync): of 33 sounds whose LFO was found on seven A2 notes at irregular spacing, 27 run freely (the phase agrees against the clock, not against the note-on: concentration 0.92-1.00 against at most 0.41), and 3 restart with each note (concentration 1.00 against the note-on, at most 0.46 against the clock): 5-6 (4.44 Hz), 8-8 (13.33 Hz, the same rate at A2 and A4, so an LFO, not a beat between detuned oscillators) and 8-7's sample and hold. The delays fade the depth in per note while the phase runs on. 5-3, 6-3 and 8-2 are unclear. 2-6 also shows a free-running 7.5 Hz pitch modulation, the 3rd harmonic of its 2.5 Hz LFO. The PWM at 4.40 Hz on 7-7 is the 5th harmonic of the chorus II LFO (0.88 Hz), free-running, not an LFO.", False),
     ("Velocity: level proportional to velocity squared (exponent 2.00, 8 to 127, four sounds); no effect on brightness.", False),
     ("Polyphony: four voices. Of six held notes entering in turn, the 2nd and 3rd are dropped when the 5th and 6th enter; the lowest note keeps sounding.", False),
     ("FILTER (sound 6-8, RESONANCE 255): the resonant peak moves one octave per 14.4 steps below 2 kHz, from about 30 Hz at 85 (A2), flattening towards 13-16 kHz; it follows the keyboard fully (1.00 octave per octave).", False),
+    ("FILTER per sound (filters experiment, RESONANCE 255, notes A1 to A4, resonant peak against a FILTER 255 / RESONANCE 0 reference): the cutoff for one FILTER value differs by octaves between sounds: 1 kHz at A2 needs FILTER 158 on 6-8, 78 on 2-7, 31 on 4-6, and lies below 17 on 4-4. Keyboard tracking: 6-8 1.00, 2-7 0.50, 4-6 0.31, 4-4 0.0 (the spreadsheet marks 6-8 and 2-7 tracked, 4-6 and 4-4 not). The curve differs too: 6-8 rises one octave per 14-15 steps from 153 to 187; 4-4 and 4-6 one octave per about 31 steps near 17, steepening to 16-18 near 68-85. The 6-8 values match the earlier direct measurement of its self-oscillation within 3 %.", False),
     ("RESONANCE (sound 2-7): at 255 the resonant peak stands about 15 dB above its level at 0 and the fundamental drops 5-6 dB.", False),
     ("ATTACK (sound 2-7): rise to -3 dB under 20 ms up to 68, then doubling every 31 steps to 1.7 s at 255; release unaffected.", False),
     ("ENV (sound 1-3): 0-119 is a pluck whose decay to -20 dB lengthens from 35 to 215 ms; from 136 a sustain appears (-19 dB) and rises to -0.7 dB at 255 while the release to -20 dB lengthens from 0.3 s at 136 to 5.6 s at 221, beyond the 7.5 s measured at 238 and 255.", False),
+    ("Long releases (1-3, one note, 30 s of release): at ENV 221 the release falls 3.5 dB/s (-60 dB after 17 s); at ENV 238 and 255 it is the same, 2.27 dB/s (-60 dB after 26.4 s): the release reaches its longest at 238.", False),
     ("", False),
     ("Sources", True),
     ("Reference spreadsheet (grey columns of the Comparison sheet, quoted for comparison): Nick Standing (JabunAudio), 'Roland J-6 Preset Sounds Settings Ver. 1.0', patch sheet published with the video 'Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet! (Free download or donation)', https://www.youtube.com/watch?v=z6hoNwWadR8.", False),

@@ -253,10 +253,16 @@ Findings that hold across the 64 sounds:
   level is proportional to velocity squared (exponent 2.00 from 8 to 127, see
   Experiments). It does not change the brightness.
 - Glide is polyphonic: each voice glides from the last pitch it played.
-- The LFOs follow the pattern tempo: all 43 LFO detections fall on a note
-  value at 100 BPM, from a dotted half (0.56 Hz) to a dotted thirty-second
-  (8.89 Hz), and at 150 BPM they run 1.5 times faster (see Experiments). Their
-  delays do not follow the tempo. The chorus is free-running.
+- The LFOs follow the pattern tempo. Measured across seven notes, the
+  rates of 27 sounds' LFOs fall within 0.1 % of a note value at 100 BPM, from
+  a whole-note triplet (0.625 Hz) to a thirty-second (13.33 Hz), and at
+  150 BPM they run 1.5 times faster (see Experiments). Their delays do not
+  follow the tempo. Most LFOs run freely; three restart with each note. The
+  chorus is free-running.
+- LFO rates of 3.17, 2.53 and 0.53 Hz in `measurements.csv` are artifacts:
+  the analysis ignores a band of 0.35 Hz around each chorus harmonic, and an
+  LFO inside such a band reads at its edge. The true rates (3.33, 2.5, 0.556
+  or 0.625 Hz) come from the keysync experiment; `lfo_flags` marks the cases.
 - LFO delay (time until the modulation reaches half its later depth) agrees
   with the reference spreadsheet's Delay column on 34 of the 37 sounds where
   an LFO was measured. Delays shorter than one LFO cycle read 0, and an onset
@@ -272,7 +278,10 @@ sub-oscillator plus a saw an octave up). Sounds that decay within 1.5 s get
 no LFO, PWM or chorus measurement in the default and open passes; they are
 measured on the env255 pass, where they sustain. LFO rates below 0.3 Hz are
 not detected. The env000 pass was recorded in chord mode and is used for
-envelope levels and times only.
+envelope levels and times only. The `key_tracking` column, from brightness,
+misreads sounds whose filter is open, where brightness follows the
+oscillator: 4-4 reads 0.63 there and 0.0 in the filter sweep, 2-7 0.78 and
+0.50.
 
 ## Experiments
 
@@ -306,12 +315,12 @@ so it works whether or not the filter self-oscillates; on synthetic test
 signals the fit recovers the mapping within 5 cents.
 
 Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
-`sweep_*.csv`):
+`sweep_*.csv`, `keysync.csv`, `filters*.csv`, `longtail.csv`):
 
 - **Tempo.** Of the LFOs detected at both 100 and 150 BPM (24), the rates
   scale by a median 1.502 against a tempo ratio of 1.500, and 22 keep their
-  note value; the two others are on 8-4, whose slow modulations (0.3 and
-  0.5 Hz) sit at the detection limit. The seven LFO delays measurable at both
+  note value; the two others are on 8-4, whose LFO (0.625 Hz, from the
+  keysync experiment) the 6 s note resolves poorly. The seven LFO delays measurable at both
   tempos stay the same (median ratio 0.97, against 0.67 if they followed the
   tempo): rates are tempo-synced, delays are in seconds. Attack, sustain,
   release and glide differ by a median of 2 ms, 0.2 dB, 5 ms and 0 ms; the
@@ -320,9 +329,22 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
 - **Sample and hold.** 8-7, which the reference spreadsheet describes as a
   free-running S&H LFO to the filter, shows random brightness steps at
   4.44 Hz at 100 BPM and 6.67 Hz at 150 BPM: a dotted sixteenth at both
-  tempos, so the S&H clock follows the tempo too. Whether its phase restarts
-  with each note was not tested. Its random level changes also make its
-  attack and release measurements arbitrary.
+  tempos, so the S&H clock follows the tempo too, and its steps restart with
+  each note (keysync). Its random level changes also make its attack and
+  release measurements arbitrary.
+- **LFO phase** (keysync: seven A2 notes of 3.5 s at irregular spacing, 38
+  sounds). An LFO was found on 33. Of these, 27 run freely: their phase
+  agrees against the clock (concentration 0.92-1.00) and not against the
+  note-on (at most 0.41). Three restart with each note (1.00 against the
+  note-on, at most 0.46 against the clock): 5-6 (4.44 Hz, vibrato, filter and
+  PWM together), 8-8 (13.33 Hz; the same rate on A2 and A4, so an LFO and not
+  a beat between detuned oscillators) and 8-7's sample and hold. 5-3, 6-3
+  (6.81 Hz, not a note value) and 8-2 are unclear. The free-running rates sit
+  within 0.1 % of a note value; 7-8 and 8-4 run at 0.625 Hz, a whole-note
+  triplet. A delay fades the depth in with each note while the phase runs on.
+  The PWM at 4.40 Hz on 7-7 is the 5th harmonic of the chorus II LFO
+  (0.88 Hz), and 2-6's 7.5 Hz pitch modulation the 3rd harmonic of its 2.5 Hz
+  LFO.
 - **Velocity.** On 1-3, 2-7, 4-4 and 6-8, level follows velocity squared:
   exponent 1.99-2.02, 48 dB from velocity 8 to 127. Brightness shows no trend
   (the scatter on 2-7 and 4-4 is their chorus and LFO caught at different
@@ -337,9 +359,19 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
   817 Hz at 153, 1.75 kHz at 170 (A2), then flattens towards 13 kHz at 255
   (A2) and about 16 kHz (A4). Below 85 the filter is closed. It follows the
   keyboard fully: A4 puts the peak two octaves above A2 (1.00 octave per
-  octave). The FILTER value is not an absolute frequency for every sound:
-  2-7 at FILTER 69 is far brighter than 6-8 at 68, so each sound has its own
-  cutoff offset (and possibly its own key tracking).
+  octave).
+- **FILTER per sound** (filters: RESONANCE 255, notes A1 to A4, the resonant
+  peak located against a FILTER 255 / RESONANCE 0 reference). One FILTER
+  value gives cutoffs octaves apart on different sounds: 1 kHz at A2 needs
+  FILTER 158 on 6-8, 78 on 2-7, 31 on 4-6, and less than 17 on 4-4. Keyboard
+  tracking differs too: 6-8 1.00, 2-7 0.50, 4-6 0.31, 4-4 0.0 (the reference
+  spreadsheet marks 6-8 and 2-7 tracked, 4-6 and 4-4 not). So does the curve:
+  6-8 rises one octave per 14-15 steps from 153 to 187; 4-4 and 4-6 one
+  octave per about 31 steps near 17, steepening to 16-18 near 68-85, with the
+  same ratios step by step, as if they shared one curve at different
+  offsets. From about 102 on 4-4, 119 on 4-6 and 153 on 2-7, the response up
+  to 12 kHz stays within a few dB of FILTER 255. The 6-8 values agree with the direct
+  reading of its self-oscillation within 3 %.
 - **RESONANCE** (2-7, FILTER 69). Against RESONANCE 0, the resonant peak
   rises to about +15 dB (at 660 Hz for A2, near 1.3 kHz for A4, to the nearest
   harmonic) and saturates above 170-204; the fundamental drops 5-6 dB, the
@@ -350,9 +382,12 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
 - **ENV** (1-3). 0-119 is a pluck without sustain whose decay to -20 dB
   lengthens from 35 to 215 ms. From 136 a sustain appears (-18.7 dB) and rises
   to -0.7 dB at 255, while the release to -20 dB lengthens from 0.3 s to
-  5.6 s at 221, beyond the 7.5 s measured at 238-255; a staccato note's
-  release matches the long note's. Brightness follows the same envelope: at
-  ENV 255 it holds, at 136 it falls after the onset.
+  5.6 s at 221; a staccato note's release matches the long note's.
+  Brightness follows the same envelope: at ENV 255 it holds, at 136 it falls
+  after the onset.
+- **Long releases** (longtail, 1-3). The release is a clean exponential down
+  to -140 dBFS: 3.5 dB/s at ENV 221 (-60 dB after 17.0 s), 2.27 dB/s at both
+  238 and 255 (-60 dB after 26.4 s). The release stops lengthening at 238.
 
 ## Troubleshooting
 
