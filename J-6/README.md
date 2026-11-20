@@ -259,9 +259,9 @@ Findings that hold across the 64 sounds:
   runs at a 1/128 note (53.3 Hz), in the audio range. At 150 and at 60 BPM
   they scale with the tempo (see Experiments). Their delays do not follow the
   tempo.
-- Each sound has one LFO, shared by its voices. Of 38 sounds tested, 32 LFOs
+- Each sound has one LFO, shared by its voices. Of 38 sounds tested, 33 LFOs
   run freely and 4 restart when a note starts from silence (5-6, 6-3, 8-8
-  and 8-7's sample and hold); 5-8's readings conflict, and 5-5 has none. The
+  and 8-7's sample and hold); 5-5 has none. The
   chorus is free-running: its LFO runs at 0.543 Hz (chorus I) and 0.879 Hz
   (chorus II).
 - LFO rates of 3.17, 2.53 and 0.53 Hz in `measurements.csv` are artifacts:
@@ -380,7 +380,8 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
     products. 3-6 (filter, 1/4, 1.667 Hz), 8-3 (filter, 1/2, 0.833 Hz) and
     7-2 (a 6-cent vibrato at 1/4T, 2.5 Hz, which the spreadsheet does not
     list, with pulse width at twice the rate) run freely. 5-8 (filter, 1/2.,
-    0.556 Hz) is conflicting (below). All follow the tempo at 60 BPM.
+    0.556 Hz) runs freely too (settled by the finalfinal pass, below). All
+    follow the tempo at 60 BPM.
   - 8-2 and 5-5 showed nothing but harmonics of the chorus LFO between 0.25
     and 18 Hz on 20 s notes; the final pass settles both (below).
   - One LFO per sound, shared by its voices: with four notes entering
@@ -420,7 +421,8 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
     between harmonics; calibrated on 8-2, a resonant cutoff sweeping across
     them moves those above and below it in opposite directions, so a clear
     filter LFO gave only 0.13: correlation proves nothing here.)
-  - 5-8 stays conflicting. Its LFO (1/2., 0.556 Hz, following the tempo)
+  - 5-8 was conflicting (settled by the finalfinal pass, below). Its LFO
+    (1/2., 0.556 Hz, following the tempo)
     shows as sharp dips at clock-locked times (steps: 0.91 against the
     clock), while its brightness level reads "restarts" (0.93 against the
     note-on). The level reading is suspect: the sound's filter envelope
@@ -432,6 +434,22 @@ Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
     and a free-running 0.556 Hz LFO is classified correctly even on 3.5 s
     notes, so this explanation is not demonstrated: the `finalfinal` pass
     measures 5-8 on 8 s notes, past its envelope, beside two controls.
+- **Finalfinal pass** (`keysync3`; `results/keysync3.csv`). On eight 8 s
+  notes measured from 1 s and fitted from 2 s after each note-on, 5-8's
+  LFO runs freely at both tempos and on both measures: 0.98-1.00 against
+  the clock, 0.33-0.40 against the note-on (steps and brightness level, 100
+  and 60 BPM). The controls behave: 8-1, free-running at the same 0.556 Hz,
+  reads 1.00 against the clock; 5-6 reads 1.00 against the note-on. Replaying
+  the old measurement on these notes reproduces the false restart: the
+  first 3.5 s fitted from 1 s give 0.91 against the note-on, while a 3.5 s
+  window starting 2 s in gives 0.95 against the clock. The cause is 5-8's
+  brightness spike at each note-on (+1.09 octave, settled within 0.9 s),
+  which bends the trend removed over the whole short note; against an LFO
+  of only 0.14 octave the remainder poses as a sinusoid locked to the
+  note-on. The synthetic test had missed it because its LFO was deeper.
+  This artifact can only make an LFO look restarting; every other slow LFO
+  read free-running, and the restarting ones are fast (4.4 Hz and up, many
+  cycles per note; 5-6 restarts on the 8 s notes too).
 - **Velocity.** On 1-3, 2-7, 4-4 and 6-8, level follows velocity squared:
   exponent 1.99-2.02, 48 dB from velocity 8 to 127. Brightness shows no trend
   (the scatter on 2-7 and 4-4 is their chorus and LFO caught at different
