@@ -285,8 +285,9 @@ oscillator: 4-4 reads 0.63 there and 0.0 in the filter sweep, 2-7 0.78 and
 
 ## Experiments
 
-Further pattern sets, recorded with `bash j6passes.sh tempo150 sweep` and
-`bash j6passes.sh keysync filters` (one restore each) and analysed with
+Further pattern sets, recorded with `bash j6passes.sh tempo150 sweep`,
+`bash j6passes.sh keysync filters` and `bash j6passes.sh closing` (one
+restore each) and analysed with
 `python3 j6experiments.py captures`, which writes CSV files into `results/`
 and prints a summary:
 
@@ -296,6 +297,7 @@ and prints a summary:
 | `sweep` | 16 steps (0, 17 ... 255) of FILTER on 6-8, RESONANCE on 2-7, ATTACK on 2-7, ENV on 1-3 | full stimulus, then the ENV sweep with long tails | knob value against cutoff (Hz, read from the self-oscillating filter), resonance, attack time, decay / sustain / release |
 | `keysync` | every sound at its defaults (8-7 at 150 BPM) | `retrig` on the 38 sounds with an LFO that sustain: seven A2 notes of 3.5 s at irregular spacing | does each LFO (and 8-7's sample and hold) restart with each note or run freely |
 | `filters` | 6-8, 2-7, 4-6, 4-4: FILTER 255 / RESONANCE 0, then FILTER 17 ... 238 at RESONANCE 255; 1-3 at ENV 221, 238, 255 | `filter` (A1, A2, A3, A4, 2 s each) on the first 60; `longtail` (one 6 s note, 30 s of release) on the last three | each sound's cutoff offset, steps per octave and keyboard tracking; releases longer than 7.5 s |
+| `closing` | 8-8 at 60 and 70 BPM; 5-3, 6-3, 8-2 at 100 and 60 BPM; 3-6, 5-5, 5-8, 7-2, 8-3 at 100 and 60 BPM; 6-5 and 5-6 | `longnote` (one 20 s A2 note) on all but 6-5 and 5-6; `retrig8` (eight A2 notes) on those at 60-100 BPM; `chord` (four staggered notes) on 5-3, 6-3, 8-2, 6-5, 5-6 | does 8-8's 13.33 Hz LFO follow the tempo; exact rates, tempo sync and phase of the unclear sounds; do sounds where no LFO was found have one; do the voices share one LFO phase |
 
 `j6prm.py generate --plan sweep` builds the sweep set (the plan is built in);
 `--plan FILE` builds any pattern set from a CSV giving each pattern its sound
@@ -303,7 +305,16 @@ and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM);
 `keysync` and `filters` are built in too. `j6capture.py` has six extra stimuli:
 `envelope` (6 s note, 8 s tail, staccato, 6 s tail), `velocity` (A3 at 16
 velocities, 8 to 127), `poly` (six notes entering 0.5 s apart, released
-together), `retrig`, `filter` and `longtail` (above).
+together), `retrig`, `filter`, `longtail`, `longnote`, `retrig8` and `chord`
+(above).
+
+`longnote` resolves rates to about 0.05 Hz, enough to tell an LFO from a
+harmonic of the chorus LFO, whose own rate it measures on the same note
+(0.543 Hz for chorus I, 0.878-0.880 Hz for chorus II on the 6 s notes).
+`retrig8` spreads its onsets for every note value at 60, 70 and 100 BPM
+(concentration at most 0.43; the `retrig` onsets give 0.82 for 12 Hz at
+90 BPM, which is why 8-8 is tested at 60 and 70). In `chord`, each voice is
+read on its own fundamental and 2nd harmonic, which no other note shares.
 
 The `retrig` onsets (0, 4.64, 9.16, 13.83, 18.40, 22.91, 27.49 s) are chosen
 so that, for every note value at 100 BPM, an LFO running freely would meet the

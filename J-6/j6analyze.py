@@ -299,7 +299,7 @@ def band(s, rate, hop=0.01, width=0.3):
     return np.fft.irfft(spec, len(s))
 
 
-def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0):
+def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0, guard=0.35):
     """The most prominent modulation that moves both channels in phase (a
     chorus sweeps them in opposite phase). Returns rate, prominence, swing
     (p95-p5 of the band-limited mean of both channels), the series, and
@@ -320,7 +320,7 @@ def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0):
     tried = []
     for i in order[:200]:
         rate = f[i]
-        if (any(abs(rate - t) < 0.2 for t in tried) or any(abs(rate - e) < 0.35 for e in exclude)
+        if (any(abs(rate - t) < 0.2 for t in tried) or any(abs(rate - e) < guard for e in exclude)
                 or rate > fmax - 0.5):           # a peak at the search limit is an edge effect
             continue
         tried.append(rate)
@@ -332,7 +332,7 @@ def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0):
             continue
         if np.corrcoef(bl, br)[0, 1] > 0.5:
             bm = band(mean, rate, hop)
-            edge = any(abs(abs(rate - e) - 0.35) < 0.015 for e in exclude)
+            edge = any(abs(abs(rate - e) - guard) < 0.015 for e in exclude)
             return float(rate), float(prom), float(np.percentile(bm, 95) - np.percentile(bm, 5)), mean, edge
     return None
 

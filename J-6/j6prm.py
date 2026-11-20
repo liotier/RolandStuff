@@ -229,7 +229,23 @@ def keysync_plan() -> dict[int, dict]:
     return {63: {"sound": 62, "BPM": 150.0}}
 
 
-BUILTIN_PLANS = {"sweep": sweep_plan, "filters": filters_plan, "keysync": keysync_plan}
+def closing_plan() -> dict[int, dict]:
+    """Built-in plan 'closing': 8-8 at 60 and 70 BPM (patterns 1-2); 5-3, 6-3
+    and 8-2, whose LFO phase was unclear, at 100 and 60 BPM (3-8); 3-6, 5-5,
+    5-8, 7-2 and 8-3, where no LFO was found on short notes, at 100 BPM (9-13)
+    and 60 BPM (16-20); 6-5 and 5-6, a free-running and a restarting LFO, as
+    controls for the chord test (14-15)."""
+    def idx(lab):
+        return (int(lab[0]) - 1) * 8 + int(lab[2]) - 1
+    steps = [("8-8", 60), ("8-8", 70), ("5-3", 100), ("5-3", 60), ("6-3", 100), ("6-3", 60),
+             ("8-2", 100), ("8-2", 60), ("3-6", 100), ("5-5", 100), ("5-8", 100), ("7-2", 100),
+             ("8-3", 100), ("6-5", 100), ("5-6", 100), ("3-6", 60), ("5-5", 60), ("5-8", 60),
+             ("7-2", 60), ("8-3", 60)]
+    return {n: {"sound": idx(lab), "BPM": float(bpm)} for n, (lab, bpm) in enumerate(steps, 1)}
+
+
+BUILTIN_PLANS = {"sweep": sweep_plan, "filters": filters_plan, "keysync": keysync_plan,
+                 "closing": closing_plan}
 
 
 def read_plan(path) -> dict[int, dict]:
@@ -338,7 +354,7 @@ def main() -> None:
     p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
-    p.add_argument("--plan", help="'sweep', 'filters' or 'keysync' (built in), or a CSV giving each pattern its sound "
+    p.add_argument("--plan", help="'sweep', 'filters', 'keysync' or 'closing' (built in), or a CSV giving each pattern its sound "
                    "and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
     p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
                    "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")
