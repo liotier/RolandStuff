@@ -12,7 +12,7 @@ With CAPTURES (the folder holding open/, default/ and env255/):
     the band excluded around the chorus (2-1, 1-6, 2-4, 1-4)
   - weak pitch ripples on 4-5 and 4-6, below the 6-cent detection threshold
 
-Run it from the J-6 folder (it imports j6analyze.py).
+Run it from the J-6_presets_measurement folder (it imports j6analyze.py).
 """
 import math
 import sys

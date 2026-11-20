@@ -307,7 +307,7 @@ lines = [
     ("Reference spreadsheet (grey columns of the Comparison sheet, quoted for comparison): Nick Standing (JabunAudio), 'Roland J-6 Preset Sounds Settings Ver. 1.0', patch sheet published with the video 'Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet! (Free download or donation)', https://www.youtube.com/watch?v=z6hoNwWadR8.", False),
     ("J-6 Owner's Manual v1.02, Top Panel: https://static.roland.com/manuals/J-6_manual_v102/eng/26654326.html", False),
     ("J-6 Owner's Manual v1.02, Backup/Restore: https://static.roland.com/manuals/J-6_manual_v102/eng/26654319.html", False),
-    ("Tools and procedure: https://github.com/liotier/RolandStuff/tree/claude/affectionate-franklin-t1cy4x/J-6", False),
+    ("Tools and procedure: https://github.com/liotier/RolandStuff/tree/claude/affectionate-franklin-t1cy4x/J-6_presets_measurement", False),
 ]
 for i, (t, bold) in enumerate(lines, 1):
     method.cell(row=i, column=1, value=t).font = BOLD if bold else FONT
