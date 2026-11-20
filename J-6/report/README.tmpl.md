@@ -15,11 +15,6 @@ not, the answers.
 
 ## 1. On the shoulders of a giant: Nick Standing's patch sheet
 
-> *Nanos gigantum humeris insidentes* - dwarfs perched on the shoulders of
-> giants. Bernard of Chartres' image, recorded by John of Salisbury in 1159
-> and made proverbial by Newton
-> ([Wikipedia](https://en.wikipedia.org/wiki/Standing_on_the_shoulders_of_giants)).
-
 Roland names none of the J-6's sounds: its documentation numbers them 1-1 to
 8-8 and leaves it there
 ([owner's manuals](https://www.roland.com/global/support/by_product/j-6/owners_manuals/)).
@@ -120,46 +115,52 @@ J-6 gives it, pattern tempo 100 BPM. Names as written in Standing's sheet.
 
 How to read it:
 
-- **Oscillator**: the harmonic make-up of an A4 note with the filter fully
-  open (FILTER 255, RESONANCE 0), averaged over the note. "pulse 31 %" is a
-  pulse that is high for 31 % of its period, from the ratio of its first two
-  harmonics. "+1 oct": the
-  oscillator sounds an octave above the note played. "sub -3 dB": a square
-  sub-oscillator one octave below the oscillator, 3 dB under it. "noise": the
-  energy between the harmonics exceeds -28 dB relative to them (a threshold
-  placed after seeing the sheet; the median shares in section 1 do not depend
-  on it). Averaged over time, a pulse whose width sweeps widely has the
-  spectrum of a saw: "pulse, PWM" marks the four sounds where, with the filter
-  fully open, both the even harmonics and the brightness still swing at the
-  LFO's rate; "saw spectrum (Standing: PWM)" marks those where this could not
-  be shown.
-- **Chorus**: I or II, from the rate at which the stereo image pulses
+- **Sound**: the panel number (bank-number), with the name Standing gave the
+  sound.
+- **Oscillator, chorus**: the harmonic make-up of an A4 note with the filter
+  fully open (FILTER 255, RESONANCE 0), averaged over the note; the waveform
+  on the first line, octave and sub-oscillator on the second, the chorus on
+  the last. "pulse 31 %" is a pulse that is high for 31 % of its period, from
+  the ratio of its first two harmonics. "+1 oct": the oscillator sounds an
+  octave above the note played. "sub -3 dB": a square sub-oscillator one
+  octave below the oscillator, 3 dB under it. "noise": the energy between the
+  harmonics exceeds -28 dB relative to them (a threshold placed after seeing
+  the sheet; the median shares in section 1 do not depend on it). Averaged
+  over time, a pulse whose width sweeps widely has the spectrum of a saw:
+  "pulse, PWM" marks the four sounds where, with the filter fully open, both
+  the even harmonics and the brightness still swing at the LFO's rate; "saw
+  spectrum, PWM per Standing" marks those where this could not be shown.
+  Chorus I or II is told by the rate at which the stereo image pulses
   (1.09 Hz for I, 1.76 Hz for II); "on" when the mode could not be told; Off
   is exact mono.
-- **Attack / sustain / release**: the amplitude envelope of a 6 s A2 note with
-  the filter fully open. Attack: time to come within 3 dB of the peak.
-  Sustain: the level at the end of the note, relative to the peak. Release:
-  time to fall by 20 dB after the note-off. A pluck, which has no sustain,
-  gets its decay time to -20 dB instead.
-- **Glide**: time for the second note of a legato A2-E3 pair to settle within
-  40 cents of its pitch; "no": it jumps; "-": not measurable.
-- **LFO moves**: what the LFO modulates, from the swing of pitch, brightness
-  and even harmonics with the filter at the sound's setting and fully open
-  (section 4.5.15). "pitch" means that the pitch moves, whatever the cause.
-  "pulse width": the even harmonics swing at the LFO's rate even with the
-  filter fully open. The chorus moves them too, which makes this the least
-  certain of the three readings; "?" marks the two sounds where the sheet
-  hears a saw without PWM.
-- **LFO rate at 100 BPM**: the note value and its frequency at 100 BPM; at
-  another tempo the rate scales with it.
-- **LFO phase**: "free": the LFO runs on its own clock and each note catches it
-  at a different point; "restarts": a note played while no other key is held
-  starts the LFO at the same point every time; "n/t": not tested (plucks).
-- **LFO delay**: seconds until the modulation reaches half its final depth;
-  "-": none, or shorter than one LFO cycle; "?": hidden by the sound's own
-  envelope.
-- **FILTER / RES / ATTACK**: the values (0-255) the J-6 writes into a pattern
-  when the sound is chosen. [ENVELOPE] (`ENV`) is always set to 128.
+- **Attack / sustain / release, glide**: the amplitude envelope of a 6 s A2
+  note with the filter fully open. Attack: time to come within 3 dB of the
+  peak. Sustain: the level at the end of the note, relative to the peak.
+  Release: time to fall by 20 dB after the note-off. A pluck, which has no
+  sustain, gets its decay time to -20 dB instead. A glide line appears on the
+  sounds that glide: the time the second note of a legato A2-E3 pair takes to
+  settle within 40 cents of its pitch. The others jump, except 2-2, 3-1, 4-4
+  and 6-8, where the glide could not be measured.
+- **LFO**: "none", or up to four lines.
+  - What it moves, from the swing of pitch, brightness and even harmonics with
+    the filter at the sound's setting and fully open (section 4.5.15).
+    "pitch" means that the pitch moves, whatever the cause. "pulse width": the
+    even harmonics swing at the LFO's rate even with the filter fully open.
+    The chorus moves them too, which makes this the least certain of the three
+    readings; "?" marks the two sounds where the sheet hears a saw without
+    PWM.
+  - Its rate: the note value and its frequency at 100 BPM; at another tempo
+    the rate scales with it.
+  - Its phase: "free-running": the LFO runs on its own clock and each note
+    catches it at a different point; "restarts": a note played while no other
+    key is held starts the LFO at the same point every time; "phase not
+    tested": plucks.
+  - Its delay, when it has one: seconds until the modulation reaches half its
+    final depth; "delay hidden": hidden by the sound's own envelope. No delay
+    line means none, or one shorter than an LFO cycle.
+- **FILTER, RES, ATTACK**: the values (0-255) the J-6 writes into a pattern
+  when the sound is chosen, one per line. [ENVELOPE] (`ENV`) is always set to
+  128.
 
 ### 2.2 The instrument as a whole
 

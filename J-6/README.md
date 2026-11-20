@@ -15,11 +15,6 @@ not, the answers.
 
 ## 1. On the shoulders of a giant: Nick Standing's patch sheet
 
-> *Nanos gigantum humeris insidentes* - dwarfs perched on the shoulders of
-> giants. Bernard of Chartres' image, recorded by John of Salisbury in 1159
-> and made proverbial by Newton
-> ([Wikipedia](https://en.wikipedia.org/wiki/Standing_on_the_shoulders_of_giants)).
-
 Roland names none of the J-6's sounds: its documentation numbers them 1-1 to
 8-8 and leaves it there
 ([owner's manuals](https://www.roland.com/global/support/by_product/j-6/owners_manuals/)).
@@ -116,115 +111,121 @@ Ver. 1.0*, distributed with
 One J-6 (system program 1.02, factory reset), each sound at the settings the
 J-6 gives it, pattern tempo 100 BPM. Names as written in Standing's sheet.
 
-| Sound | Name (Standing) | Oscillator | Chorus | Attack / sustain / release | Glide (ms) | LFO moves | LFO rate at 100 BPM | LFO phase | LFO delay (s) | FILTER / RES / ATTACK | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1-1 | Mellow Sub Octave Pluck | pulse 31 % | I | 0 ms / -13 dB / 71 ms | no | none | - | - | - | 85 / 24 / 0 |  |
-| 1-2 | Square Pluck | square | Off | 0 ms / -19 dB / 2 ms | no | none | - | - | - | 85 / 23 / 0 |  |
-| 1-3 | Mellow Mallet | square | Off | 0 ms / pluck: -20 dB in 239 ms | no | none | - | - | - | 121 / 79 / 0 |  |
-| 1-4 | Noisy Mellow Pluck | square, noise | Off | 0 ms / pluck: -20 dB in 424 ms | no | filter ? | slow, 0.3-0.6 Hz | n/t | - | 128 / 144 / 0 | seen only with ENV 255: a 0.23 octave brightness swing at 0.556 Hz (1/2.); unverified |
-| 1-5 | Noisy Octave Pluck | pulse 43 %, +1 oct, sub -2 dB, noise | I | 0 ms / pluck: -20 dB in 234 ms | no | none | - | - | - | 78 / 97 / 0 | a 3.26 Hz reading is chorus I's 6th harmonic |
-| 1-6 | Harpsichord | pulse 30 %, +1 oct, sub +2 dB | Off | 0 ms / pluck: -20 dB in 244 ms | no | pulse width, pitch | 1/4T (2.5 Hz) | n/t | 0.55 | 137 / 29 / 0 | measured with ENV 255, where it sustains |
-| 1-7 | Chorus Clavinet | pulse 16 % | on | 3 ms / -10 dB / 30 ms | no | pulse width | 1/4T (2.5 Hz) | free | - | 0 / 28 / 0 | spreadsheet: pulse width fixed |
-| 1-8 | Chorus Harp | square, +1 oct, sub, same level | I | 7 ms / pluck: -20 dB in 1541 ms | no | none | - | - | - | 27 / 33 / 0 |  |
-| 2-1 | Staccato Steel Drum | pulse 34 %, noise | on | 0 ms / pluck: -20 dB in 75 ms | no | filter, pulse width | 1/8 (3.333 Hz) | n/t | - | 95 / 31 / 0 | 3.330 Hz with ENV 255 (first read at 3.17 Hz, a chorus band edge); Standing: 1/8th notes |
-| 2-2 | Bright Detuned Saw Pluck | saw, +1 oct, sub +3 dB | II | 0 ms / pluck: -20 dB in 688 ms | - | none | - | - | - | 0 / 7 / 0 |  |
-| 2-3 | Synthy 80s Clean Guitar | pulse 31 %, +1 oct, sub -1 dB | on | 3 ms / pluck: -20 dB in 803 ms | no | none | - | - | - | 65 / 120 / 18 |  |
-| 2-4 | Gliding Noisy Pluck | pulse 39 %, +1 oct, sub +2 dB, noise | II | 7 ms / pluck: -20 dB in 334 ms | 15 | pulse width | 1/8. (2.222 Hz) | n/t | - | 110 / 179 / 38 | measured with ENV 255 |
-| 2-5 | Octave Splash | pulse 44 %, +1 oct, sub -2 dB, noise | II | 35 ms / pluck: -20 dB in 474 ms | no | none | - | - | - | 87 / 158 / 91 |  |
-| 2-6 | Plectrum Wind | pulse 18 %, noise | on | 7 ms / 0 dB / 227 ms | 1127 | filter | 1/4T (2.5 Hz) | free | - | 121 / 183 / 2 | a 7.5 Hz pitch ripple is the LFO's 3rd harmonic |
-| 2-7 | Plectrum Mellotron Chorus | pulse 40 %, +1 oct, sub -1 dB | II | 0 ms / -1 dB / 14 ms | no | filter | 1/8 (3.333 Hz) | free | 0.67 | 69 / 0 / 0 | its pitch ripple is the filter's pull |
-| 2-8 | Air Harp | pulse 37 % | I | 0 ms / -9 dB / 698 ms | no | filter | 1/16. (4.444 Hz) | free | 0.37 | 121 / 55 / 0 |  |
-| 3-1 | Ambient Piano | pulse 33 % | I | 2 ms / -28 dB / - | - | none | - | - | - | 122 / 0 / 0 |  |
-| 3-2 | Synth Vibraphone | square | Off | 0 ms / -10 dB / 429 ms | no | none | - | - | - | 119 / 102 / 0 |  |
-| 3-3 | Hammered Dulcimar | pulse 44 %, +1 oct, sub -2 dB | II | 5 ms / -22 dB / 690 ms | no | none | - | - | - | 146 / 34 / 0 |  |
-| 3-4 | Saw Piano | saw | I | 0 ms / -11 dB / 630 ms | no | none | - | - | - | 106 / 0 / 0 |  |
-| 3-5 | Brass Pluck | saw spectrum (Standing: envelope PWM) | I | 12 ms / -17 dB / 9 ms | no | none | - | - | - | 115 / 43 / 58 |  |
-| 3-6 | Resonant Blown Glass | square, +1 oct, sub -8 dB | I | 80 ms / -6 dB / 850 ms | no | filter | 1/4 (1.667 Hz) | free | - | 75 / 115 / 117 | first suspected to be a chorus harmonic |
-| 3-7 | Acid Saw | saw | Off | 21 ms / -6 dB / 18 ms | no | none | - | - | - | 84 / 126 / 77 |  |
-| 3-8 | Bright Trumpet | saw | Off | 15 ms / -3 dB / 66 ms | no | pitch | 1/16. (4.444 Hz) | free | 0.85 | 0 / 0 / 67 |  |
-| 4-1 | Octave PWM Lead | saw spectrum (Standing: PWM), +1 oct, sub -3 dB | II | 12 ms / -3 dB / 8 ms | no | pulse width | 1/2T (1.25 Hz) | free | - | 64 / 0 / 61 |  |
-| 4-2 | Gliding Pulse Lead I | pulse 42 %, +1 oct, sub +5 dB | I | 15 ms / -1 dB / 6 ms | 15 | none | - | - | - | 110 / 170 / 13 | Standing: wide filter LFO at low FILTER; not tested there |
-| 4-3 | Slow PWM Lead | pulse, PWM (averages to a saw spectrum) | II | 14 ms / -1 dB / 35 ms | no | pulse width | 1/2. (0.556 Hz) | free | - | 255 / 0 / 0 |  |
-| 4-4 | Vibrato Saw Lead | saw | II | 4 ms / -1 dB / 150 ms | - | pitch, 145 cents | 1/8T (5 Hz) | free | under 0.2 | 121 / 64 / 0 |  |
-| 4-5 | Gliding Pluse Lead II | pulse 45 % | on | 6 ms / 0 dB / 3 ms | 55 | none | - | - | - | 255 / 0 / 0 | Standing: slight vibrato; none found |
-| 4-6 | Octave Dirty Strings | pulse 38 %, +1 oct, sub -6 dB, noise | II | 42 ms / -1 dB / 183 ms | no | none | - | - | - | 169 / 39 / 91 | Standing: vibrato with delay; none found |
-| 4-7 | Octave Mixed Lead | pulse 37 %, +1 oct, sub -6 dB | II | 9 ms / -1 dB / 40 ms | no | none | - | - | - | 152 / 14 / 0 |  |
-| 4-8 | Blown Octave Square | square, +1 oct, sub -1 dB | II | 20 ms / -6 dB / 6 ms | no | none | - | - | - | 205 / 120 / 84 |  |
-| 5-1 | Thick Attack Lead | saw, +1 oct, sub -5 dB | on | 2 ms / -8 dB / 9 ms | no | pulse width | 1/4T (2.5 Hz) | free | - | 147 / 18 / 57 |  |
-| 5-2 | The Fake Slim Shady | pulse 23 %, +1 oct, sub -7 dB | Off | 0 ms / -6 dB / 183 ms | no | pitch | 1/16. (4.444 Hz) | free | - | 158 / 92 / 0 |  |
-| 5-3 | Ya-ee Choir | saw, +1 oct, sub -2 dB | II | 13 ms / -1 dB / 1027 ms | no | pulse width | 1/2 (0.833 Hz) | free | - | 119 / 255 / 0 | first read at 2.59 Hz, a chorus product |
-| 5-4 | Dark Strings | pulse 40 % | II | 14 ms / -2 dB / 245 ms | no | pulse width | 1/8 (3.333 Hz) | free | - | 133 / 24 / 58 | the spreadsheet lists no LFO |
-| 5-5 | Angry Cat | saw, noise | II | 11 ms / 0 dB / 636 ms | 649 | none | - | - | - | 51 / 138 / 36 | Standing: fast filter LFO; its jitter is the noisy source |
-| 5-6 | Brass Choir | pulse, PWM (averages to a saw spectrum) | II | 27 ms / -4 dB / 712 ms | no | pulse width, pitch | 1/16. (4.444 Hz) | restarts | - | 79 / 60 / 82 | restarts only when no other key is held; the voices share it; the pitch swing may be the PWM's own phase motion |
-| 5-7 | Whoa Flute | saw, +1 oct, sub +4 dB | Off | 67 ms / -8 dB / 4 ms | 15 | filter | 1/8T (5 Hz) | free | - | 98 / 114 / 113 |  |
-| 5-8 | Honky Tonk Clav | saw spectrum (Standing: PWM), +1 oct, sub +3 dB | II | 3 ms / -8 dB / 9 ms | no | filter or pulse width | 1/2. (0.556 Hz) | free | - | 27 / 20 / 0 | first misread as restarting |
-| 6-1 | PWM Envelope | saw spectrum (Standing: envelope PWM) | I | 3 ms / -12 dB / 20 ms | no | none | - | - | - | 136 / 2 / 0 |  |
-| 6-2 | Solo String | saw | Off | 47 ms / 0 dB / 258 ms | no | pitch | 1/8T (5 Hz) | free | 0.88 | 169 / 0 / 97 |  |
-| 6-3 | Square Ring Mod | square, modulated at 53 Hz | II | 13 ms / -1 dB / 79 ms | no | audio-rate modulation (filter, per Standing) | 1/128 (53.33 Hz) | restarts | - | 161 / 39 / 0 | the ring-modulator timbre; it changes with the tempo |
-| 6-4 | Mellow Trumpet | saw | Off | 25 ms / -5 dB / 101 ms | no | filter | 1/16. (4.444 Hz) | free | ? | 53 / 0 / 82 |  |
-| 6-5 | Horn | saw | Off | 10 ms / -4 dB / 71 ms | no | filter | 1/8T (5 Hz) | free | 0.86 | 134 / 0 / 61 |  |
-| 6-6 | Square Chorus Lead | square | I | 12 ms / -4 dB / 9 ms | no | none | - | - | - | 48 / 113 / 0 |  |
-| 6-7 | Clarinet | square | Off | 21 ms / -3 dB / 107 ms | no | pitch | 1/8T (5 Hz) | free | 0.54 | 130 / 43 / 72 |  |
-| 6-8 | Ocarina | noise through a ringing filter | Off | 60 ms / 0 dB / 17 ms | - | filter, heard as pitch | 1/8 (3.333 Hz) | free | - | 112 / 255 / 103 | the filter rings: its LFO sounds as vibrato |
-| 7-1 | PWM String Ensemble I | pulse, PWM (averages to a saw spectrum), +1 oct, sub +3 dB | II | 42 ms / -1 dB / 233 ms | no | pulse width | 1/8. (2.222 Hz) | free | - | 207 / 7 / 80 |  |
-| 7-2 | Saw String Ensemble | saw, +1 oct, sub +7 dB | II | 126 ms / -2 dB / 357 ms | no | pitch, pulse width ? | 1/4T (2.5 Hz) | free | - | 166 / 17 / 122 | the spreadsheet lists no LFO; a 6-cent vibrato; the even harmonics move at twice its rate |
-| 7-3 | Brass Ensemble | saw, noise | II | 198 ms / -5 dB / 209 ms | no | pitch, pulse width ? | 1/16. (4.444 Hz) | free | - | 129 / 15 / 154 | Standing: vibrato, saw without PWM; with the filter open its even harmonics and brightness still swing |
-| 7-4 | PWM String Ensemble II | pulse, PWM (averages to a saw spectrum), +1 oct, sub -2 dB | II | 46 ms / -1 dB / 1080 ms | no | pulse width | 1/8. (2.222 Hz) | free | - | 135 / 17 / 89 |  |
-| 7-5 | Ghost Pad | saw, noise | I | 399 ms / 0 dB / 256 ms | no | pitch | 1/32. (8.889 Hz) | free | - | 116 / 0 / 183 |  |
-| 7-6 | Evolving Filter Pad I (Bright) | pulse 25 % | II | 46 ms / -10 dB / 247 ms | no | filter, pitch | 1/4T (2.5 Hz) | free | 0.82 | 182 / 0 / 97 |  |
-| 7-7 | Evolving Filter Pad II (Mellow) | square, +1 oct, sub +3 dB | II | 346 ms / -1 dB / 1894 ms | no | filter | 1/8 (3.333 Hz) | free | ? | 98 / 97 / 179 | delay hidden by the filter envelope |
-| 7-8 | Evolving Filter Pad III (Mellow Slow and Wide) | saw | II | 211 ms / -10 dB / 906 ms | no | filter | 1/1T (0.625 Hz) | free | - | 152 / 64 / 155 | a whole-note triplet |
-| 8-1 | Evolving Filter Pad IV (Bright Slow and Wide) | saw, +1 oct, sub -14 dB | II | 19 ms / -4 dB / 155 ms | no | filter, pitch | 1/2. (0.556 Hz) | free | - | 183 / 132 / 69 |  |
-| 8-2 | Evolving Filter Pad V (Squishy I) | pulse 42 % | II | 327 ms / -5 dB / 289 ms | 160 | filter, pulse width | 1/2T (1.25 Hz) | free | - | 251 / 144 / 195 | hidden by its nearly open FILTER (251) |
-| 8-3 | Evolving Filter Pad VI (Squishy II) | pulse 34 % | I | 235 ms / -8 dB / 257 ms | no | filter, pitch | 1/2 (0.833 Hz) | free | ? | 212 / 81 / 165 | first misread as a 2.53 Hz vibrato |
-| 8-4 | Evolving Filter Pad VII (Blossoming I) | saw, +1 oct, sub -10 dB | II | 2001 ms / -9 dB / 570 ms | no | filter, pitch | 1/1T (0.625 Hz) | free | - | 84 / 64 / 255 | a whole-note triplet |
-| 8-5 | Evolving Filter Pad VII (Blossoming II) | saw spectrum (Standing: envelope PWM), sub -13 dB | I | 1880 ms / 0 dB / - | no | none | - | - | - | 116 / 178 / 255 |  |
-| 8-6 | Decaying Filter Pad (Blossoming III) | pulse 33 %, +1 oct, sub +3 dB | I | 7 ms / -34 dB / 33 ms | no | pitch | 1/8T (5 Hz) | free | 0.91 | 157 / 148 / 0 |  |
-| 8-7 | Sample and Hold Pad | pulse 28 % | on | 173 ms / 0 dB / 1541 ms | no | filter, sample and hold | 1/16. (4.444 Hz) | restarts | - | 28 / 159 / 146 | tested at 150 BPM (6.67 Hz) |
-| 8-8 | Plectrum Tremolo Pad | saw, +1 oct, sub, same level | II | 6 ms / -10 dB / 746 ms | no | filter | 1/32 (13.333 Hz) | restarts | - | 105 / 255 / 0 | a 1/32 at 60, 70 and 100 BPM |
+| Sound<br>(name by Standing) | Oscillator,<br>chorus | Attack / sustain /<br>release, glide | LFO: moves,<br>rate at 100 BPM,<br>phase, delay | FILTER<br>RES<br>ATTACK | Notes |
+|---|---|---|---|---|---|
+| **1-1** Mellow Sub Octave Pluck | pulse 31&nbsp;%<br>chorus I | 0&nbsp;ms / -13&nbsp;dB / 71&nbsp;ms | none | 85<br>24<br>0 |  |
+| **1-2** Square Pluck | square<br>chorus Off | 0&nbsp;ms / -19&nbsp;dB / 2&nbsp;ms | none | 85<br>23<br>0 |  |
+| **1-3** Mellow Mallet | square<br>chorus Off | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 239&nbsp;ms | none | 121<br>79<br>0 |  |
+| **1-4** Noisy Mellow Pluck | square, noise<br>chorus Off | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 424&nbsp;ms | filter ?<br>slow, 0.3-0.6&nbsp;Hz<br>phase not tested | 128<br>144<br>0 | seen only with ENV 255: a 0.23 octave brightness swing at 0.556&nbsp;Hz (1/2.); unverified |
+| **1-5** Noisy Octave Pluck | pulse 43&nbsp;%, noise<br>+1 oct, sub -2&nbsp;dB<br>chorus I | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 234&nbsp;ms | none | 78<br>97<br>0 | a 3.26&nbsp;Hz reading is chorus I's 6th harmonic |
+| **1-6** Harpsichord | pulse 30&nbsp;%<br>+1 oct, sub +2&nbsp;dB<br>chorus Off | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 244&nbsp;ms | pulse width, pitch<br>1/4T (2.5&nbsp;Hz)<br>phase not tested<br>delay 0.55&nbsp;s | 137<br>29<br>0 | measured with ENV 255, where it sustains |
+| **1-7** Chorus Clavinet | pulse 16&nbsp;%<br>chorus on | 3&nbsp;ms / -10&nbsp;dB / 30&nbsp;ms | pulse width<br>1/4T (2.5&nbsp;Hz)<br>free-running | 0<br>28<br>0 | spreadsheet: pulse width fixed |
+| **1-8** Chorus Harp | square<br>+1 oct, sub, same level<br>chorus I | 7&nbsp;ms / pluck,<br>-20&nbsp;dB in 1541&nbsp;ms | none | 27<br>33<br>0 |  |
+| **2-1** Staccato Steel Drum | pulse 34&nbsp;%, noise<br>chorus on | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 75&nbsp;ms | filter, pulse width<br>1/8 (3.333&nbsp;Hz)<br>phase not tested | 95<br>31<br>0 | 3.330&nbsp;Hz with ENV 255 (first read at 3.17&nbsp;Hz, a chorus band edge); Standing: 1/8th notes |
+| **2-2** Bright Detuned Saw Pluck | saw<br>+1 oct, sub +3&nbsp;dB<br>chorus II | 0&nbsp;ms / pluck,<br>-20&nbsp;dB in 688&nbsp;ms | none | 0<br>7<br>0 |  |
+| **2-3** Synthy 80s Clean Guitar | pulse 31&nbsp;%<br>+1 oct, sub -1&nbsp;dB<br>chorus on | 3&nbsp;ms / pluck,<br>-20&nbsp;dB in 803&nbsp;ms | none | 65<br>120<br>18 |  |
+| **2-4** Gliding Noisy Pluck | pulse 39&nbsp;%, noise<br>+1 oct, sub +2&nbsp;dB<br>chorus II | 7&nbsp;ms / pluck,<br>-20&nbsp;dB in 334&nbsp;ms<br>glide 15&nbsp;ms | pulse width<br>1/8. (2.222&nbsp;Hz)<br>phase not tested | 110<br>179<br>38 | measured with ENV 255 |
+| **2-5** Octave Splash | pulse 44&nbsp;%, noise<br>+1 oct, sub -2&nbsp;dB<br>chorus II | 35&nbsp;ms / pluck,<br>-20&nbsp;dB in 474&nbsp;ms | none | 87<br>158<br>91 |  |
+| **2-6** Plectrum Wind | pulse 18&nbsp;%, noise<br>chorus on | 7&nbsp;ms / 0&nbsp;dB / 227&nbsp;ms<br>glide 1127&nbsp;ms | filter<br>1/4T (2.5&nbsp;Hz)<br>free-running | 121<br>183<br>2 | a 7.5&nbsp;Hz pitch ripple is the LFO's 3rd harmonic |
+| **2-7** Plectrum Mellotron Chorus | pulse 40&nbsp;%<br>+1 oct, sub -1&nbsp;dB<br>chorus II | 0&nbsp;ms / -1&nbsp;dB / 14&nbsp;ms | filter<br>1/8 (3.333&nbsp;Hz)<br>free-running<br>delay 0.67&nbsp;s | 69<br>0<br>0 | its pitch ripple is the filter's pull |
+| **2-8** Air Harp | pulse 37&nbsp;%<br>chorus I | 0&nbsp;ms / -9&nbsp;dB / 698&nbsp;ms | filter<br>1/16. (4.444&nbsp;Hz)<br>free-running<br>delay 0.37&nbsp;s | 121<br>55<br>0 |  |
+| **3-1** Ambient Piano | pulse 33&nbsp;%<br>chorus I | 2&nbsp;ms / -28&nbsp;dB / - | none | 122<br>0<br>0 |  |
+| **3-2** Synth Vibraphone | square<br>chorus Off | 0&nbsp;ms / -10&nbsp;dB / 429&nbsp;ms | none | 119<br>102<br>0 |  |
+| **3-3** Hammered Dulcimar | pulse 44&nbsp;%<br>+1 oct, sub -2&nbsp;dB<br>chorus II | 5&nbsp;ms / -22&nbsp;dB / 690&nbsp;ms | none | 146<br>34<br>0 |  |
+| **3-4** Saw Piano | saw<br>chorus I | 0&nbsp;ms / -11&nbsp;dB / 630&nbsp;ms | none | 106<br>0<br>0 |  |
+| **3-5** Brass Pluck | saw spectrum, envelope<br>PWM per Standing<br>chorus I | 12&nbsp;ms / -17&nbsp;dB / 9&nbsp;ms | none | 115<br>43<br>58 |  |
+| **3-6** Resonant Blown Glass | square<br>+1 oct, sub -8&nbsp;dB<br>chorus I | 80&nbsp;ms / -6&nbsp;dB / 850&nbsp;ms | filter<br>1/4 (1.667&nbsp;Hz)<br>free-running | 75<br>115<br>117 | first suspected to be a chorus harmonic |
+| **3-7** Acid Saw | saw<br>chorus Off | 21&nbsp;ms / -6&nbsp;dB / 18&nbsp;ms | none | 84<br>126<br>77 |  |
+| **3-8** Bright Trumpet | saw<br>chorus Off | 15&nbsp;ms / -3&nbsp;dB / 66&nbsp;ms | pitch<br>1/16. (4.444&nbsp;Hz)<br>free-running<br>delay 0.85&nbsp;s | 0<br>0<br>67 |  |
+| **4-1** Octave PWM Lead | saw spectrum,<br>PWM per Standing<br>+1 oct, sub -3&nbsp;dB<br>chorus II | 12&nbsp;ms / -3&nbsp;dB / 8&nbsp;ms | pulse width<br>1/2T (1.25&nbsp;Hz)<br>free-running | 64<br>0<br>61 |  |
+| **4-2** Gliding Pulse Lead I | pulse 42&nbsp;%<br>+1 oct, sub +5&nbsp;dB<br>chorus I | 15&nbsp;ms / -1&nbsp;dB / 6&nbsp;ms<br>glide 15&nbsp;ms | none | 110<br>170<br>13 | Standing: wide filter LFO at low FILTER; not tested there |
+| **4-3** Slow PWM Lead | pulse, PWM<br>chorus II | 14&nbsp;ms / -1&nbsp;dB / 35&nbsp;ms | pulse width<br>1/2. (0.556&nbsp;Hz)<br>free-running | 255<br>0<br>0 |  |
+| **4-4** Vibrato Saw Lead | saw<br>chorus II | 4&nbsp;ms / -1&nbsp;dB / 150&nbsp;ms | pitch, 145 cents<br>1/8T (5&nbsp;Hz)<br>free-running<br>delay under 0.2&nbsp;s | 121<br>64<br>0 |  |
+| **4-5** Gliding Pluse Lead II | pulse 45&nbsp;%<br>chorus on | 6&nbsp;ms / 0&nbsp;dB / 3&nbsp;ms<br>glide 55&nbsp;ms | none | 255<br>0<br>0 | Standing: slight vibrato; none found |
+| **4-6** Octave Dirty Strings | pulse 38&nbsp;%, noise<br>+1 oct, sub -6&nbsp;dB<br>chorus II | 42&nbsp;ms / -1&nbsp;dB / 183&nbsp;ms | none | 169<br>39<br>91 | Standing: vibrato with delay; none found |
+| **4-7** Octave Mixed Lead | pulse 37&nbsp;%<br>+1 oct, sub -6&nbsp;dB<br>chorus II | 9&nbsp;ms / -1&nbsp;dB / 40&nbsp;ms | none | 152<br>14<br>0 |  |
+| **4-8** Blown Octave Square | square<br>+1 oct, sub -1&nbsp;dB<br>chorus II | 20&nbsp;ms / -6&nbsp;dB / 6&nbsp;ms | none | 205<br>120<br>84 |  |
+| **5-1** Thick Attack Lead | saw<br>+1 oct, sub -5&nbsp;dB<br>chorus on | 2&nbsp;ms / -8&nbsp;dB / 9&nbsp;ms | pulse width<br>1/4T (2.5&nbsp;Hz)<br>free-running | 147<br>18<br>57 |  |
+| **5-2** The Fake Slim Shady | pulse 23&nbsp;%<br>+1 oct, sub -7&nbsp;dB<br>chorus Off | 0&nbsp;ms / -6&nbsp;dB / 183&nbsp;ms | pitch<br>1/16. (4.444&nbsp;Hz)<br>free-running | 158<br>92<br>0 |  |
+| **5-3** Ya-ee Choir | saw<br>+1 oct, sub -2&nbsp;dB<br>chorus II | 13&nbsp;ms / -1&nbsp;dB / 1027&nbsp;ms | pulse width<br>1/2 (0.833&nbsp;Hz)<br>free-running | 119<br>255<br>0 | first read at 2.59&nbsp;Hz, a chorus product |
+| **5-4** Dark Strings | pulse 40&nbsp;%<br>chorus II | 14&nbsp;ms / -2&nbsp;dB / 245&nbsp;ms | pulse width<br>1/8 (3.333&nbsp;Hz)<br>free-running | 133<br>24<br>58 | the spreadsheet lists no LFO |
+| **5-5** Angry Cat | saw, noise<br>chorus II | 11&nbsp;ms / 0&nbsp;dB / 636&nbsp;ms<br>glide 649&nbsp;ms | none | 51<br>138<br>36 | Standing: fast filter LFO; its jitter is the noisy source |
+| **5-6** Brass Choir | pulse, PWM<br>chorus II | 27&nbsp;ms / -4&nbsp;dB / 712&nbsp;ms | pulse width, pitch<br>1/16. (4.444&nbsp;Hz)<br>restarts | 79<br>60<br>82 | restarts only when no other key is held; the voices share it; the pitch swing may be the PWM's own phase motion |
+| **5-7** Whoa Flute | saw<br>+1 oct, sub +4&nbsp;dB<br>chorus Off | 67&nbsp;ms / -8&nbsp;dB / 4&nbsp;ms<br>glide 15&nbsp;ms | filter<br>1/8T (5&nbsp;Hz)<br>free-running | 98<br>114<br>113 |  |
+| **5-8** Honky Tonk Clav | saw spectrum,<br>PWM per Standing<br>+1 oct, sub +3&nbsp;dB<br>chorus II | 3&nbsp;ms / -8&nbsp;dB / 9&nbsp;ms | filter or pulse width<br>1/2. (0.556&nbsp;Hz)<br>free-running | 27<br>20<br>0 | first misread as restarting |
+| **6-1** PWM Envelope | saw spectrum, envelope<br>PWM per Standing<br>chorus I | 3&nbsp;ms / -12&nbsp;dB / 20&nbsp;ms | none | 136<br>2<br>0 |  |
+| **6-2** Solo String | saw<br>chorus Off | 47&nbsp;ms / 0&nbsp;dB / 258&nbsp;ms | pitch<br>1/8T (5&nbsp;Hz)<br>free-running<br>delay 0.88&nbsp;s | 169<br>0<br>97 |  |
+| **6-3** Square Ring Mod | square, modulated at 53&nbsp;Hz<br>chorus II | 13&nbsp;ms / -1&nbsp;dB / 79&nbsp;ms | filter (per Standing), at audio rate<br>1/128 (53.33&nbsp;Hz)<br>restarts | 161<br>39<br>0 | the ring-modulator timbre; it changes with the tempo |
+| **6-4** Mellow Trumpet | saw<br>chorus Off | 25&nbsp;ms / -5&nbsp;dB / 101&nbsp;ms | filter<br>1/16. (4.444&nbsp;Hz)<br>free-running<br>delay hidden | 53<br>0<br>82 |  |
+| **6-5** Horn | saw<br>chorus Off | 10&nbsp;ms / -4&nbsp;dB / 71&nbsp;ms | filter<br>1/8T (5&nbsp;Hz)<br>free-running<br>delay 0.86&nbsp;s | 134<br>0<br>61 |  |
+| **6-6** Square Chorus Lead | square<br>chorus I | 12&nbsp;ms / -4&nbsp;dB / 9&nbsp;ms | none | 48<br>113<br>0 |  |
+| **6-7** Clarinet | square<br>chorus Off | 21&nbsp;ms / -3&nbsp;dB / 107&nbsp;ms | pitch<br>1/8T (5&nbsp;Hz)<br>free-running<br>delay 0.54&nbsp;s | 130<br>43<br>72 |  |
+| **6-8** Ocarina | noise through a ringing filter<br>chorus Off | 60&nbsp;ms / 0&nbsp;dB / 17&nbsp;ms | filter, heard as pitch<br>1/8 (3.333&nbsp;Hz)<br>free-running | 112<br>255<br>103 | the filter rings: its LFO sounds as vibrato |
+| **7-1** PWM String Ensemble I | pulse, PWM<br>+1 oct, sub +3&nbsp;dB<br>chorus II | 42&nbsp;ms / -1&nbsp;dB / 233&nbsp;ms | pulse width<br>1/8. (2.222&nbsp;Hz)<br>free-running | 207<br>7<br>80 |  |
+| **7-2** Saw String Ensemble | saw<br>+1 oct, sub +7&nbsp;dB<br>chorus II | 126&nbsp;ms / -2&nbsp;dB / 357&nbsp;ms | pitch, pulse width ?<br>1/4T (2.5&nbsp;Hz)<br>free-running | 166<br>17<br>122 | the spreadsheet lists no LFO; a 6-cent vibrato; the even harmonics move at twice its rate |
+| **7-3** Brass Ensemble | saw, noise<br>chorus II | 198&nbsp;ms / -5&nbsp;dB / 209&nbsp;ms | pitch, pulse width ?<br>1/16. (4.444&nbsp;Hz)<br>free-running | 129<br>15<br>154 | Standing: vibrato, saw without PWM; with the filter open its even harmonics and brightness still swing |
+| **7-4** PWM String Ensemble II | pulse, PWM<br>+1 oct, sub -2&nbsp;dB<br>chorus II | 46&nbsp;ms / -1&nbsp;dB / 1080&nbsp;ms | pulse width<br>1/8. (2.222&nbsp;Hz)<br>free-running | 135<br>17<br>89 |  |
+| **7-5** Ghost Pad | saw, noise<br>chorus I | 399&nbsp;ms / 0&nbsp;dB / 256&nbsp;ms | pitch<br>1/32. (8.889&nbsp;Hz)<br>free-running | 116<br>0<br>183 |  |
+| **7-6** Evolving Filter Pad I (Bright) | pulse 25&nbsp;%<br>chorus II | 46&nbsp;ms / -10&nbsp;dB / 247&nbsp;ms | filter, pitch<br>1/4T (2.5&nbsp;Hz)<br>free-running<br>delay 0.82&nbsp;s | 182<br>0<br>97 |  |
+| **7-7** Evolving Filter Pad II (Mellow) | square<br>+1 oct, sub +3&nbsp;dB<br>chorus II | 346&nbsp;ms / -1&nbsp;dB / 1894&nbsp;ms | filter<br>1/8 (3.333&nbsp;Hz)<br>free-running<br>delay hidden | 98<br>97<br>179 | delay hidden by the filter envelope |
+| **7-8** Evolving Filter Pad III (Mellow Slow and Wide) | saw<br>chorus II | 211&nbsp;ms / -10&nbsp;dB / 906&nbsp;ms | filter<br>1/1T (0.625&nbsp;Hz)<br>free-running | 152<br>64<br>155 | a whole-note triplet |
+| **8-1** Evolving Filter Pad IV (Bright Slow and Wide) | saw<br>+1 oct, sub -14&nbsp;dB<br>chorus II | 19&nbsp;ms / -4&nbsp;dB / 155&nbsp;ms | filter, pitch<br>1/2. (0.556&nbsp;Hz)<br>free-running | 183<br>132<br>69 |  |
+| **8-2** Evolving Filter Pad V (Squishy I) | pulse 42&nbsp;%<br>chorus II | 327&nbsp;ms / -5&nbsp;dB / 289&nbsp;ms<br>glide 160&nbsp;ms | filter, pulse width<br>1/2T (1.25&nbsp;Hz)<br>free-running | 251<br>144<br>195 | hidden by its nearly open FILTER (251) |
+| **8-3** Evolving Filter Pad VI (Squishy II) | pulse 34&nbsp;%<br>chorus I | 235&nbsp;ms / -8&nbsp;dB / 257&nbsp;ms | filter, pitch<br>1/2 (0.833&nbsp;Hz)<br>free-running<br>delay hidden | 212<br>81<br>165 | first misread as a 2.53&nbsp;Hz vibrato |
+| **8-4** Evolving Filter Pad VII (Blossoming I) | saw<br>+1 oct, sub -10&nbsp;dB<br>chorus II | 2001&nbsp;ms / -9&nbsp;dB / 570&nbsp;ms | filter, pitch<br>1/1T (0.625&nbsp;Hz)<br>free-running | 84<br>64<br>255 | a whole-note triplet |
+| **8-5** Evolving Filter Pad VII (Blossoming II) | saw spectrum, envelope<br>PWM per Standing<br>sub -13&nbsp;dB<br>chorus I | 1880&nbsp;ms / 0&nbsp;dB / - | none | 116<br>178<br>255 |  |
+| **8-6** Decaying Filter Pad (Blossoming III) | pulse 33&nbsp;%<br>+1 oct, sub +3&nbsp;dB<br>chorus I | 7&nbsp;ms / -34&nbsp;dB / 33&nbsp;ms | pitch<br>1/8T (5&nbsp;Hz)<br>free-running<br>delay 0.91&nbsp;s | 157<br>148<br>0 |  |
+| **8-7** Sample and Hold Pad | pulse 28&nbsp;%<br>chorus on | 173&nbsp;ms / 0&nbsp;dB / 1541&nbsp;ms | filter, sample and hold<br>1/16. (4.444&nbsp;Hz)<br>restarts | 28<br>159<br>146 | tested at 150 BPM (6.67&nbsp;Hz) |
+| **8-8** Plectrum Tremolo Pad | saw<br>+1 oct, sub, same level<br>chorus II | 6&nbsp;ms / -10&nbsp;dB / 746&nbsp;ms | filter<br>1/32 (13.333&nbsp;Hz)<br>restarts | 105<br>255<br>0 | a 1/32 at 60, 70 and 100 BPM |
 
 How to read it:
 
-- **Oscillator**: the harmonic make-up of an A4 note with the filter fully
-  open (FILTER 255, RESONANCE 0), averaged over the note. "pulse 31 %" is a
-  pulse that is high for 31 % of its period, from the ratio of its first two
-  harmonics. "+1 oct": the
-  oscillator sounds an octave above the note played. "sub -3 dB": a square
-  sub-oscillator one octave below the oscillator, 3 dB under it. "noise": the
-  energy between the harmonics exceeds -28 dB relative to them (a threshold
-  placed after seeing the sheet; the median shares in section 1 do not depend
-  on it). Averaged over time, a pulse whose width sweeps widely has the
-  spectrum of a saw: "pulse, PWM" marks the four sounds where, with the filter
-  fully open, both the even harmonics and the brightness still swing at the
-  LFO's rate; "saw spectrum (Standing: PWM)" marks those where this could not
-  be shown.
-- **Chorus**: I or II, from the rate at which the stereo image pulses
+- **Sound**: the panel number (bank-number), with the name Standing gave the
+  sound.
+- **Oscillator, chorus**: the harmonic make-up of an A4 note with the filter
+  fully open (FILTER 255, RESONANCE 0), averaged over the note; the waveform
+  on the first line, octave and sub-oscillator on the second, the chorus on
+  the last. "pulse 31 %" is a pulse that is high for 31 % of its period, from
+  the ratio of its first two harmonics. "+1 oct": the oscillator sounds an
+  octave above the note played. "sub -3 dB": a square sub-oscillator one
+  octave below the oscillator, 3 dB under it. "noise": the energy between the
+  harmonics exceeds -28 dB relative to them (a threshold placed after seeing
+  the sheet; the median shares in section 1 do not depend on it). Averaged
+  over time, a pulse whose width sweeps widely has the spectrum of a saw:
+  "pulse, PWM" marks the four sounds where, with the filter fully open, both
+  the even harmonics and the brightness still swing at the LFO's rate; "saw
+  spectrum, PWM per Standing" marks those where this could not be shown.
+  Chorus I or II is told by the rate at which the stereo image pulses
   (1.09 Hz for I, 1.76 Hz for II); "on" when the mode could not be told; Off
   is exact mono.
-- **Attack / sustain / release**: the amplitude envelope of a 6 s A2 note with
-  the filter fully open. Attack: time to come within 3 dB of the peak.
-  Sustain: the level at the end of the note, relative to the peak. Release:
-  time to fall by 20 dB after the note-off. A pluck, which has no sustain,
-  gets its decay time to -20 dB instead.
-- **Glide**: time for the second note of a legato A2-E3 pair to settle within
-  40 cents of its pitch; "no": it jumps; "-": not measurable.
-- **LFO moves**: what the LFO modulates, from the swing of pitch, brightness
-  and even harmonics with the filter at the sound's setting and fully open
-  (section 4.5.15). "pitch" means that the pitch moves, whatever the cause.
-  "pulse width": the even harmonics swing at the LFO's rate even with the
-  filter fully open. The chorus moves them too, which makes this the least
-  certain of the three readings; "?" marks the two sounds where the sheet
-  hears a saw without PWM.
-- **LFO rate at 100 BPM**: the note value and its frequency at 100 BPM; at
-  another tempo the rate scales with it.
-- **LFO phase**: "free": the LFO runs on its own clock and each note catches it
-  at a different point; "restarts": a note played while no other key is held
-  starts the LFO at the same point every time; "n/t": not tested (plucks).
-- **LFO delay**: seconds until the modulation reaches half its final depth;
-  "-": none, or shorter than one LFO cycle; "?": hidden by the sound's own
-  envelope.
-- **FILTER / RES / ATTACK**: the values (0-255) the J-6 writes into a pattern
-  when the sound is chosen. [ENVELOPE] (`ENV`) is always set to 128.
+- **Attack / sustain / release, glide**: the amplitude envelope of a 6 s A2
+  note with the filter fully open. Attack: time to come within 3 dB of the
+  peak. Sustain: the level at the end of the note, relative to the peak.
+  Release: time to fall by 20 dB after the note-off. A pluck, which has no
+  sustain, gets its decay time to -20 dB instead. A glide line appears on the
+  sounds that glide: the time the second note of a legato A2-E3 pair takes to
+  settle within 40 cents of its pitch. The others jump, except 2-2, 3-1, 4-4
+  and 6-8, where the glide could not be measured.
+- **LFO**: "none", or up to four lines.
+  - What it moves, from the swing of pitch, brightness and even harmonics with
+    the filter at the sound's setting and fully open (section 4.5.15).
+    "pitch" means that the pitch moves, whatever the cause. "pulse width": the
+    even harmonics swing at the LFO's rate even with the filter fully open.
+    The chorus moves them too, which makes this the least certain of the three
+    readings; "?" marks the two sounds where the sheet hears a saw without
+    PWM.
+  - Its rate: the note value and its frequency at 100 BPM; at another tempo
+    the rate scales with it.
+  - Its phase: "free-running": the LFO runs on its own clock and each note
+    catches it at a different point; "restarts": a note played while no other
+    key is held starts the LFO at the same point every time; "phase not
+    tested": plucks.
+  - Its delay, when it has one: seconds until the modulation reaches half its
+    final depth; "delay hidden": hidden by the sound's own envelope. No delay
+    line means none, or one shorter than an LFO cycle.
+- **FILTER, RES, ATTACK**: the values (0-255) the J-6 writes into a pattern
+  when the sound is chosen, one per line. [ENVELOPE] (`ENV`) is always set to
+  128.
 
 ### 2.2 The instrument as a whole
 

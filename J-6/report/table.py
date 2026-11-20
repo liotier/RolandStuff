@@ -7,7 +7,7 @@ keysync2, keysync3, longnote, verylong, longnote2, destinations; README
 section 4.6); the other columns come from measurements.csv and defaults.csv,
 and the names from the comparison workbook.
 """
-import csv, sys, math, openpyxl
+import csv, sys, math, re, openpyxl
 R = sys.argv[1]
 m = {r["sound"]: r for r in csv.DictReader(open(f"{R}/measurements.csv"))}
 d = {r["sound"]: r for r in csv.DictReader(open(f"{R}/defaults.csv"))}
@@ -40,7 +40,7 @@ L = {
  "5-7": ("filter", "1/8T", 5.0, "free", ""),
  "5-8": ("filter or pulse width", "1/2.", 0.556, "free", "first misread as restarting"),
  "6-2": ("pitch", "1/8T", 5.0, "free", ""),
- "6-3": ("audio-rate modulation (filter, per Standing)", "1/128", 53.33, "restarts", "the ring-modulator timbre; it changes with the tempo"),
+ "6-3": ("filter (per Standing), at audio rate", "1/128", 53.33, "restarts", "the ring-modulator timbre; it changes with the tempo"),
  "6-4": ("filter", "1/16.", 4.444, "free", ""),
  "6-5": ("filter", "1/8T", 5.0, "free", ""),
  "6-7": ("pitch", "1/8T", 5.0, "free", ""),
@@ -72,60 +72,80 @@ def f(x, nd=0):
         v = float(x); return f"{v:.{nd}f}"
     except (TypeError, ValueError):
         return ""
-OSC = {"6-8": "noise through a ringing filter", "6-3": "square, modulated at 53 Hz",
-       "4-3": "pulse, PWM (averages to a saw spectrum)", "5-6": "pulse, PWM (averages to a saw spectrum)",
-       "7-1": "pulse, PWM (averages to a saw spectrum), +1 oct, sub +3 dB", "7-4": "pulse, PWM (averages to a saw spectrum), +1 oct, sub -2 dB",
-       "4-1": "saw spectrum (Standing: PWM), +1 oct, sub -3 dB", "5-8": "saw spectrum (Standing: PWM), +1 oct, sub +3 dB",
-       "3-5": "saw spectrum (Standing: envelope PWM)", "6-1": "saw spectrum (Standing: envelope PWM)",
-       "8-5": "saw spectrum (Standing: envelope PWM), sub -13 dB"}
+# whole-cell overrides, and waveform-line overrides (octave and sub as measured)
+OSC = {"6-8": "noise through a ringing filter", "6-3": "square, modulated at 53 Hz"}
+WAVE = {"4-3": "pulse, PWM", "5-6": "pulse, PWM", "7-1": "pulse, PWM", "7-4": "pulse, PWM",
+        "4-1": "saw spectrum,<br>PWM per Standing", "5-8": "saw spectrum,<br>PWM per Standing",
+        "3-5": "saw spectrum, envelope<br>PWM per Standing", "6-1": "saw spectrum, envelope<br>PWM per Standing",
+        "8-5": "saw spectrum, envelope<br>PWM per Standing"}
 def db0(x):
     v = round(float(x))
     return f"{0 if v == 0 else v:+d}" if False else str(0 if v == 0 else v)
 def osc(s):
-    if s in OSC: return OSC[s]
+    """Waveform (and noise) on the first line, octave and sub-oscillator on
+    the second."""
+    if s in OSC:
+        return OSC[s]
     r = m[s]; w = r["wave"]
     if w.startswith("pulse ~"):
         w = f"pulse {round(float(w.split('~')[1]) * 100)} %"
     elif w.startswith("pulse/mix"):
         w = "mixed"
-    parts = [w]
-    if r["osc_octave"] == "1": parts[0] += ", +1 oct"
-    if r["osc_octave"] == "-1": parts[0] += ", -1 oct"
+    w = WAVE.get(s, w)
+    nd = float(r["noise_db"]) if r["noise_db"] else -99
+    if nd > -28 and s not in ("4-4", "5-6"):
+        w += ", noise"
+    second = []
+    if r["osc_octave"] == "1": second.append("+1 oct")
+    if r["osc_octave"] == "-1": second.append("-1 oct")
     if r["sub_db"] and float(r["sub_db"]) > -15:
         v = round(float(r["sub_db"]))
-        parts.append("sub, same level" if v == 0 else f"sub {v:+d} dB")
-    nd = float(r["noise_db"]) if r["noise_db"] else -99
-    if nd > -28 and s not in ("4-4", "5-6"): parts.append("noise")
-    return ", ".join(parts)
+        second.append("sub, same level" if v == 0 else f"sub {v:+d} dB")
+    return w + ("<br>" + ", ".join(second) if second else "")
 def env(s):
     r = m[s]
     a = f(r["amp_attack_ms"])
     if r["amp_sustain_db"]:
-        rel = f(r["amp_release_-20dB_ms"])
-        return f"{a} ms / {db0(r['amp_sustain_db'])} dB / {rel} ms" if rel else f"{a} ms / {db0(r['amp_sustain_db'])} dB / -"
+        rel = f(r["amp_release_-20dB_ms"]) or "-"
+        return f"{a} ms / {db0(r['amp_sustain_db'])} dB / {rel}" + (" ms" if rel != "-" else "")
     dec = r["amp_decay_to_-20dB_ms"] or r["env000_decay_to_-20dB_ms"]
-    return f"{a} ms / pluck: -20 dB in {f(dec)} ms" if dec else f"{a} ms / pluck"
+    return f"{a} ms / pluck,<br>-20 dB in {f(dec)} ms" if dec else f"{a} ms / pluck"
 def delay(s):
     if s in DELAY_NOTE: return DELAY_NOTE[s]
     ds = [float(m[s][k + "_delay_s"]) for k in ("vibrato", "filter_lfo", "pwm") if m[s][k + "_delay_s"]]
     ds = [x for x in ds if x > 0]
     return f"{max(ds):.2f}" if ds else ""
+PHASE = {"free": "free-running", "restarts": "restarts", "n/t": "phase not tested"}
+
+
+def lfo_cell(s):
+    """Three lines: what the LFO moves, its rate, its phase and delay."""
+    lf = L.get(s)
+    if not lf:
+        return "none"
+    what, nv, hz, phase, _ = lf
+    rate = f"{nv} ({hz:g} Hz)" if nv and hz else (nv or "?")
+    dl = delay(s) if s in DELAY_NOTE or delay(s) else ""
+    last = PHASE[phase] + ("" if not dl else "<br>delay hidden" if dl == "?" else f"<br>delay {dl} s")
+    return f"{what}<br>{rate}<br>{last}"
+
+
 rows = []
 for b in range(1, 9):
     for n in range(1, 9):
         s = f"{b}-{n}"; r = m[s]
-        ch = r["chorus"] if r["chorus"] != "on" else "on"
         g = r["glide_ms"]
         glide = "-" if g in ("", None) else (f(g) if float(g) > 5 else "no")
-        lf = L.get(s)
-        if lf:
-            what, nv, hz, phase, note = lf
-            rate = f"{nv} ({hz:g} Hz)" if nv and hz else (nv or "?")
-            dl = delay(s) if s in DELAY_NOTE or delay(s) else "-"
-        else:
-            what, rate, phase, dl, note = "none", "-", "-", "-", NOTE_NONE.get(s, "")
+        note = L[s][4] if L.get(s) else NOTE_NONE.get(s, "")
         name = comp[s]["Name (spreadsheet)"].replace("|", "/")
-        rows.append(f"| {s} | {name} | {osc(s)} | {ch} | {env(s)} | {glide} | {what} | {rate} | {phase} | {dl} | {d[s]['FILTER']} / {d[s]['RESONANCE']} / {d[s]['ATTACK']} | {note} |")
-print("| Sound | Name (Standing) | Oscillator | Chorus | Attack / sustain / release | Glide (ms) | LFO moves | LFO rate at 100 BPM | LFO phase | LFO delay (s) | FILTER / RES / ATTACK | Notes |")
-print("|---|---|---|---|---|---|---|---|---|---|---|---|")
+        cells = [f"**{s}** {name}", f"{osc(s)}<br>chorus {r['chorus']}",
+                 env(s) + (f"<br>glide {glide} ms" if glide not in ("-", "no") else ""),
+                 lfo_cell(s), f"{d[s]['FILTER']}<br>{d[s]['RESONANCE']}<br>{d[s]['ATTACK']}", note]
+        # keep each number with its unit when a cell wraps
+        cells = [re.sub(r"(\d) (ms|dB|Hz|s|%)(?=[\s,;)<]|$)", r"\1&nbsp;\2", c) for c in cells]
+        rows.append("| " + " | ".join(cells) + " |")
+HEAD = ["Sound<br>(name by Standing)", "Oscillator,<br>chorus", "Attack / sustain /<br>release, glide",
+        "LFO: moves,<br>rate at 100 BPM,<br>phase, delay", "FILTER<br>RES<br>ATTACK", "Notes"]
+print("| " + " | ".join(HEAD) + " |")
+print("|" + "---|" * len(HEAD))
 print("\n".join(rows))
