@@ -80,7 +80,8 @@ Where the measurements and the sheet still differ:
 - **4-6**, a vibrato ("Mid", with a delay): none found, even below the
   detection threshold.
 - **2-1, 4-5 and 8-7**, chorus II: all three use a third chorus mode, fast
-  (7.57 Hz) and shallow, which the sheet's I, II and off do not provide for.
+  (7.57 Hz) and shallow, which the sheet's I, II and off do not provide for:
+  the J-6's counterpart of the JUNO-60's "secret" I+II mode (section 4.5.5).
 - **Pitch movements he does not list** on 7-6, 8-1, 8-3 and 8-4 (10-14 cents)
   and 5-6 (80 cents). They persist with the filter open, so they are not the
   filter's pull on the pitch; on 5-6 the pulse-width modulation alone may
@@ -200,9 +201,9 @@ How to read it:
   "pulse, PWM" marks the four sounds where, with the filter fully open, both
   the even harmonics and the brightness still swing at the LFO's rate; "saw
   spectrum, PWM per Standing" marks those where this could not be shown.
-- **Chorus**: I (its LFO at 0.543 Hz), II (0.879 Hz) or fast (7.57 Hz),
-  from the rate at which the two channels move in opposite phase (section
-  4.5.5); Off is exact mono.
+- **Chorus**: I (its LFO at 0.543 Hz), II (0.879 Hz) or fast (7.57 Hz, the
+  counterpart of the JUNO-60's I+II), from the rate at which the two channels
+  move in opposite phase (section 4.5.5); Off is exact mono.
 - **Attack / sustain / release, glide**: the amplitude envelope of a 6 s A2
   note with the filter fully open. Attack: time to come within 3 dB of the
   peak. Sustain: the level at the end of the note, relative to the peak.
@@ -248,7 +249,7 @@ How to read it:
 | RESONANCE lifts the resonant peak by up to about 15 dB and lowers the fundamental by 5-6 dB. | 2-7 at FILTER 69, 16 steps. | `sweep_resonance.csv` |
 | ATTACK stays under 20 ms up to 68, then doubles every 31 steps, to 1.7 s at 255. | 2-7, 16 steps. | `sweep_attack.csv` |
 | [ENVELOPE] moves decay, sustain and release together, in four ways depending on the sound (section 2.3). On 1-3, a pluck: decay to -20 dB from 35 to 215 ms between 0 and 119, a sustain from 136 (-18.7 dB) to 255 (-0.7 dB), and releases up to 26.4 s to -60 dB. | 1-3: 16 steps, then three notes with 30 s of tail. All 64 sounds at ENV 0, 128 and 255. | `sweep_env.csv`, `longtail.csv`, `envelope.csv` |
-| The chorus has three modes, each a free-running LFO: I at 0.543 Hz, II at 0.879 Hz, and a fast, shallow mode at 7.57 Hz (2-1, 4-5 and 8-7). Chorus off is exact mono. | I and II measured on 20 s notes; the fast mode at the same rate at 100 and 150 BPM; each sound's mode from the opposite-phase movement of its two channels. | `longnote.csv`, `chorus.csv` |
+| The chorus has three modes, each a free-running LFO: I at 0.543 Hz, II at 0.879 Hz, and a fast, shallow mode at 7.57 Hz (2-1, 4-5 and 8-7), the counterpart of the JUNO-60's "secret" I+II. Chorus off is exact mono. | I and II measured on 20 s notes; the fast mode at the same rate at 100 and 150 BPM; each sound's mode from the opposite-phase movement of its two channels. | `longnote.csv`, `chorus.csv` |
 | MIDI notes play at their pitch when [CHORD] is unlit, and [CHORD] is lit after every power-on. Tuning is within 0.3 cent of A440. | A2 measured at 110.02 Hz. | `measurements.csv` |
 | Glide belongs to each voice: a voice glides from the last pitch it played. | The starting pitch of a glide changes with the voice that plays it. | `measurements.csv` |
 | The J-6 ignores the MIDI message All Sound Off. | Releases ring on through it. | - |
@@ -367,7 +368,9 @@ the vocabulary of Standing's sheet, and of this report.
 - **A third chorus.** Besides I and II, three sounds (2-1, 4-5 and 8-7) use a
   fast, shallow chorus whose LFO runs at 7.57 Hz whatever the tempo: closer to a
   vibrato that wobbles the two sides of the stereo image in opposite
-  directions.
+  directions. It is the JUNO-60's heritage too: on the original, pressing I
+  and II together gave a "secret" third mode (Roland's word), which the J-6
+  hands to three presets.
 - **Pulse-width modulation fools the spectrum and the pitch tracker.** A
   pulse whose width sweeps widely, averaged over time, has a saw's spectrum,
   which is why our first analysis called four PWM sounds saws. A sweep that
@@ -695,8 +698,7 @@ sweep, twice per cycle of the chorus LFO. Its spectrum, on 10 ms frames,
 peaks at 1.09 Hz for chorus I and 1.76 Hz for chorus II; a peak 4 times above
 the median names the mode. Measured more finely on the 20 s notes, the chorus
 LFOs run at 0.5415-0.5428 Hz (I) and 0.8792-0.8810 Hz (II) and do not follow
-the tempo. Wikipedia's JUNO-60 article gives 0.4 and 0.6 Hz for the
-original's chorus; no primary source was found to compare with.
+the tempo.
 
 This test left 7 sounds undecided ("on"): an LFO of the sound or a short
 note can drown the pulsing of the stereo image. A second test
@@ -713,6 +715,34 @@ next. On 2-1, 4-5 and 8-7 the difference moves at 7.57 Hz (at 100 as at
 150 BPM on 4-5 and 8-7; 2-1 sustains only at ENV 255, recorded at 100 BPM):
 a third chorus mode, faster and shallower (the stereo difference lies 11 to
 20 dB under the sum, against 3 to 8 dB for I and II).
+
+The three modes are the JUNO's. On the JUNO-60, pressing I and II together
+calls up "a 'secret' third mode for exaggerated movement with a distinctive
+swirl", in Roland's words for its software recreation
+([Roland](https://www.roland.com/global/products/rc_juno-60_chorus/)). A
+circuit analysis of the JUNO-60 chorus
+([pendragon-andyh/Juno60](https://github.com/pendragon-andyh/Juno60/blob/master/Chorus/README.md))
+measures its rates and quotes the service notes:
+
+| Mode | J-6, measured | JUNO-60, measured in that analysis | JUNO-6 service notes, as quoted there |
+|---|---|---|---|
+| I | 0.543 Hz | 0.513 Hz | 0.4 Hz |
+| II | 0.879 Hz | 0.863 Hz | 0.67 Hz |
+| I+II (fast) | 7.57 Hz | 9.75 Hz | 8.06 Hz |
+
+I and II sit within 6 % and 2 % of the JUNO-60 figures. The third mode runs
+22 % slower than that analysis measured, and 6 % slower than the JUNO-6's
+figure; the JUNO-60 service notes, according to the same analysis, print
+"1Hz", probably a typo for 10 Hz. The analysis also gives the third mode a
+delay swept over 3.3-3.7 ms, against 1.66-5.35 ms for I and II (its table
+gives no unit; seconds are implied), which is consistent with the
+shallowness measured here, and calls it "similar to a Leslie rotary
+speaker". It labels that mode's outputs "Mono" without saying what
+that means; on the J-6 the two channels still move in opposite phase, with
+a stereo image much narrower than in I and II. The departure, if any, is in
+use rather than substance: the J-6's patterns carry no chorus setting (their
+files have no chorus field), so the mode comes with the sound, and the third
+mode, hidden on the JUNO-60, comes with three of its presets.
 
 #### 4.5.6 Oscillator make-up
 
@@ -1681,6 +1711,10 @@ Troubleshooting:
   and the
   [backup and restore page of the v1.02 manual](https://static.roland.com/manuals/J-6_manual_v102/eng/26654319.html).
 - Wikipedia, [Roland Juno-60](https://en.wikipedia.org/wiki/Roland_Juno-60).
+- Roland, [JUNO-60 Chorus software effect](https://www.roland.com/global/products/rc_juno-60_chorus/)
+  (the "secret" third mode).
+- pendragon-andyh, [Juno60: Chorus](https://github.com/pendragon-andyh/Juno60/blob/master/Chorus/README.md)
+  (rates, delays and service-note figures of the JUNO-60 and JUNO-6 chorus).
 - F. J. Harris, "On the use of windows for harmonic analysis with the
   discrete Fourier transform", *Proceedings of the IEEE* 66 (1), 1978,
   pp. 51-83, [doi:10.1109/PROC.1978.10837](https://doi.org/10.1109/PROC.1978.10837).
