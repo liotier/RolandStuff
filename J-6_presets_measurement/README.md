@@ -1721,4 +1721,3 @@ Troubleshooting:
   pp. 51-83, [doi:10.1109/PROC.1978.10837](https://doi.org/10.1109/PROC.1978.10837).
 - Wikipedia, [Directional statistics](https://en.wikipedia.org/wiki/Directional_statistics)
   (mean resultant length).
-- Wikipedia, [Standing on the shoulders of giants](https://en.wikipedia.org/wiki/Standing_on_the_shoulders_of_giants).
