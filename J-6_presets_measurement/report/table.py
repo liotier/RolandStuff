@@ -1,11 +1,14 @@
-"""The results table of README.md, section 2.1, from the files in results/.
+"""The results table of README.md, section 2.1, from the files in results/,
+and the same data as results/sounds.csv, one field per attribute, for
+sorting and filtering.
 
-  python3 report/table.py results > table.md
+  python3 report/table.py results [results/sounds.csv] > table.md
 
 L holds each sound's LFO verdict as the experiments settled it (keysync,
 keysync2, keysync3, longnote, verylong, longnote2, destinations; README
 section 4.6); the other columns come from measurements.csv and defaults.csv,
-and the names from the comparison workbook.
+chorus.csv and envelope.csv (j6experiments.py) and the names from the
+comparison workbook.
 """
 import csv, sys, math, re, openpyxl
 R = sys.argv[1]
@@ -30,7 +33,7 @@ L = {
  "4-1": ("pulse width", "1/2T", 1.25, "free", ""),
  "4-2": None, "4-3": ("pulse width", "1/2.", 0.556, "free", ""),
  "4-4": ("pitch, 145 cents", "1/8T", 5.0, "free", ""),
- "4-5": None, "4-6": None,
+ "4-5": ("pitch, 2-3 cents", "1/8.", 2.222, "n/t", "a slight vibrato, under the 6-cent detection threshold; 3.33 Hz at 150 BPM"), "4-6": None,
  "5-1": ("pulse width", "1/4T", 2.5, "free", ""),
  "5-2": ("pitch", "1/16.", 4.444, "free", ""),
  "5-3": ("pulse width", "1/2", 0.833, "free", "first read at 2.59 Hz, a chorus product"),
@@ -63,7 +66,6 @@ L = {
 }
 NOTE_NONE = {"1-5": "a 3.26 Hz reading is chorus I's 6th harmonic",
              "4-2": "Standing: wide filter LFO at low FILTER; not tested there",
-             "4-5": "Standing: slight vibrato; none found",
              "4-6": "Standing: vibrato with delay; none found",
              "5-5": "Standing: fast filter LFO; its jitter is the noisy source"}
 DELAY_NOTE = {"4-4": "under 0.2", "7-7": "?", "8-3": "?", "6-4": "?", "2-7": "0.67"}
@@ -81,27 +83,41 @@ WAVE = {"4-3": "pulse, PWM", "5-6": "pulse, PWM", "7-1": "pulse, PWM", "7-4": "p
 def db0(x):
     v = round(float(x))
     return f"{0 if v == 0 else v:+d}" if False else str(0 if v == 0 else v)
+def osc_fields(s):
+    """Waveform, pulse width (%), octave, sub-oscillator level (dB) and noise."""
+    r = m[s]
+    out = {"waveform": None, "pulse_width_pct": None, "octave": int(r["osc_octave"] or 0), "sub_db": None,
+           "noise": False}
+    if s in OSC:
+        out.update(waveform=OSC[s], octave=None)
+        return out
+    w = r["wave"]
+    if w.startswith("pulse ~"):
+        out["pulse_width_pct"] = round(float(w.split("~")[1]) * 100)
+        w = f"pulse {out['pulse_width_pct']} %"
+    elif w.startswith("pulse/mix"):
+        w = "mixed"
+    out["waveform"] = WAVE.get(s, w)
+    if r["sub_db"] and float(r["sub_db"]) > -15:
+        out["sub_db"] = round(float(r["sub_db"]))
+    nd = float(r["noise_db"]) if r["noise_db"] else -99
+    out["noise"] = nd > -28 and s not in ("4-4", "5-6")
+    return out
+
+
 def osc(s):
     """Waveform (and noise) on the first line, octave and sub-oscillator on
     the second."""
-    if s in OSC:
-        return OSC[s]
-    r = m[s]; w = r["wave"]
-    if w.startswith("pulse ~"):
-        w = f"pulse {round(float(w.split('~')[1]) * 100)} %"
-    elif w.startswith("pulse/mix"):
-        w = "mixed"
-    w = WAVE.get(s, w)
-    nd = float(r["noise_db"]) if r["noise_db"] else -99
-    if nd > -28 and s not in ("4-4", "5-6"):
-        w += ", noise"
+    o = osc_fields(s)
+    w = o["waveform"] + (", noise" if o["noise"] else "")
     second = []
-    if r["osc_octave"] == "1": second.append("+1 oct")
-    if r["osc_octave"] == "-1": second.append("-1 oct")
-    if r["sub_db"] and float(r["sub_db"]) > -15:
-        v = round(float(r["sub_db"]))
-        second.append("sub, same level" if v == 0 else f"sub {v:+d} dB")
+    if o["octave"]:
+        second.append(f"{o['octave']:+d} oct")
+    if o["sub_db"] is not None:
+        second.append("sub, same level" if o["sub_db"] == 0 else f"sub {o['sub_db']:+d} dB")
     return w + ("<br>" + ", ".join(second) if second else "")
+
+
 def env(s):
     r = m[s]
     a = f(r["amp_attack_ms"])
@@ -130,7 +146,27 @@ def lfo_cell(s):
     return f"{what}<br>{rate}<br>{last}"
 
 
-rows = []
+chorus = {}
+try:
+    chorus = {r["sound"]: r["verdict"] for r in csv.DictReader(open(f"{R}/chorus.csv"))}
+except FileNotFoundError:
+    pass
+group = {}
+try:
+    group = {r["sound"]: r["group"] for r in csv.DictReader(open(f"{R}/envelope.csv"))}
+except FileNotFoundError:
+    pass
+
+
+def num(x):
+    try:
+        v = float(x)
+        return int(v) if v == int(v) else v
+    except (TypeError, ValueError):
+        return None
+
+
+rows, records = [], []
 for b in range(1, 9):
     for n in range(1, 9):
         s = f"{b}-{n}"; r = m[s]
@@ -138,14 +174,37 @@ for b in range(1, 9):
         glide = "-" if g in ("", None) else (f(g) if float(g) > 5 else "no")
         note = L[s][4] if L.get(s) else NOTE_NONE.get(s, "")
         name = comp[s]["Name (spreadsheet)"].replace("|", "/")
-        cells = [f"**{s}** {name}", f"{osc(s)}<br>chorus {r['chorus']}",
+        ch = chorus.get(s) if chorus.get(s) in ("I", "II", "fast", "Off") else r["chorus"]
+        cells = [f"**{s}** {name}", osc(s), ch,
                  env(s) + (f"<br>glide {glide} ms" if glide not in ("-", "no") else ""),
                  lfo_cell(s), f"{d[s]['FILTER']}<br>{d[s]['RESONANCE']}<br>{d[s]['ATTACK']}", note]
         # keep each number with its unit when a cell wraps
         cells = [re.sub(r"(\d) (ms|dB|Hz|s|%)(?=[\s,;)<]|$)", r"\1&nbsp;\2", c) for c in cells]
         rows.append("| " + " | ".join(cells) + " |")
-HEAD = ["Sound<br>(name by Standing)", "Oscillator,<br>chorus", "Attack / sustain /<br>release, glide",
+        lf = L.get(s)
+        dl = (delay(s) if s in DELAY_NOTE or delay(s) else "") if lf else ""
+        o = osc_fields(s)
+        records.append({
+            "sound": s, "name": name, "waveform": o["waveform"].replace("<br>", " "), "pulse_width_pct": o["pulse_width_pct"],
+            "octave": o["octave"], "sub_db": o["sub_db"], "noise": "yes" if o["noise"] else "no", "chorus": ch,
+            "attack_ms": num(r["amp_attack_ms"]), "sustain_db": num(r["amp_sustain_db"]),
+            "release_ms": num(r["amp_release_-20dB_ms"]) if r["amp_sustain_db"] else None,
+            "pluck_decay_ms": None if r["amp_sustain_db"] else num(r["amp_decay_to_-20dB_ms"] or r["env000_decay_to_-20dB_ms"]),
+            "glide_ms": num(g) if glide not in ("-", "no") else (0 if glide == "no" else None),
+            "envelope_group": group.get(s),
+            "lfo_moves": lf[0] if lf else "none", "lfo_note_value": lf[1] if lf else None,
+            "lfo_hz_at_100_bpm": lf[2] if lf else None,
+            "lfo_phase": PHASE[lf[3]] if lf else None,
+            "lfo_delay_s": None if not dl else "hidden" if dl == "?" else (num(dl) if num(dl) is not None else dl),
+            "FILTER": int(d[s]["FILTER"]), "RESONANCE": int(d[s]["RESONANCE"]), "ATTACK": int(d[s]["ATTACK"]),
+            "notes": note})
+HEAD = ["Sound<br>(name by Standing)", "Oscillator", "Chorus", "Attack / sustain /<br>release, glide",
         "LFO: moves,<br>rate at 100 BPM,<br>phase, delay", "FILTER<br>RES<br>ATTACK", "Notes"]
 print("| " + " | ".join(HEAD) + " |")
 print("|" + "---|" * len(HEAD))
 print("\n".join(rows))
+if len(sys.argv) > 2:
+    with open(sys.argv[2], "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(records[0]))
+        w.writeheader()
+        w.writerows(records)

@@ -48,6 +48,10 @@ open       (with default/ and the keysync results in the output folder)
            sound's setting and fully open
 chord      four notes entering at 0, 0.25, 0.51 and 1.05 s: whether the
            voices share one LFO phase or each starts its own at its note-on
+chorus     (with default/, open/, env255/, tempo150/) the chorus mode of
+           every sound from the opposite-phase movement of the two channels
+envelope   (with env000/, default/, env255/) what [ENVELOPE] does to each
+           sound: sustain and release at ENV 0, 128 and 255, and a group
 
 Needs j6analyze.py and j6prm.py beside it, numpy, scipy and soundfile.
 """
@@ -1339,10 +1343,169 @@ def destinations(root: Path, out: Path) -> None:
     write(out / "destinations.csv", rows)
 
 
+# ---------------------------------------------------------------- chorus modes
+# Chorus LFO rates (Hz): I and II measured on the 20 s notes (longnote), the
+# fast mode on 4-5 and 8-7, the same at 100 and 150 BPM.
+CHORUS_LFO = {"I": 0.5428, "II": 0.8796, "fast": 7.57}
+CHORUS_TOL = {"I": 0.06, "II": 0.06, "fast": 0.1}
+SIX_SECOND_PASSES = ("default", "open", "env255", "tempo150")
+
+
+def octaves(out: Path) -> dict[str, int]:
+    """Each sound's oscillator octave from measurements.csv, when present."""
+    meas = out / "measurements.csv"
+    if not meas.exists():
+        return {}
+    return {r["sound"]: int(r["osc_octave"] or 0) for r in csv.DictReader(open(meas))}
+
+
+def chorus_modes(root: Path, out: Path) -> None:
+    """Chorus mode per sound from the difference between the channels. A
+    chorus sweeps the delays of the two channels in opposite directions, so
+    their pitch and brightness move in opposite phase at the chorus LFO's
+    rate, while the J-6's LFOs move both channels together. The left-minus-
+    right pitch and brightness traces of every 6 s A2 note available
+    (default, open, env255 and tempo150 passes) are transformed, each spectrum
+    divided by its median over 0.25-12 Hz, and averaged. The heights at the
+    three chorus LFO rates decide: the tallest, if 6 times the median and
+    twice the next. Exact mono on every take is Off. The main analysis
+    (measurements.csv) reads the rate at which the stereo image pulses
+    instead, which an LFO of the sound or a short note can hide."""
+    octave = octaves(out)
+    main = {}
+    if (out / "measurements.csv").exists():
+        main = {r["sound"]: r["chorus"] for r in csv.DictReader(open(out / "measurements.csv"))}
+    rows, agree, differ = [], 0, []
+    for i in range(64):
+        lab = A.label(i)
+        tot, n, used, mono = None, 0, [], 0
+        f = np.fft.rfftfreq(1 << 15, 0.01)
+        for pas in SIX_SECOND_PASSES:
+            js = root / pas / f"{pas}_P{i + 1:02d}_{lab}.json"
+            if not js.exists():
+                continue
+            tk = A.Take(js)
+            seg = tk.seg(0.05, 5.95, "stereo")
+            if not np.any(seg[:, 0] - seg[:, 1]):
+                mono += 1
+                used.append(pas)
+                continue
+            end = min(A.audible_until(tk, 6.0), 5.95)
+            if end < 2.0:
+                continue
+            tr = A.track(tk, 0.1, end, A.A2 * 2 ** octave.get(lab, 0))
+            for col in (0, 1):
+                left, right = A._clean(tr[:, 0, col]), A._clean(tr[:, 1, col])
+                if left is None or right is None or np.std(left - right) == 0:
+                    continue
+                spec = np.abs(np.fft.rfft((left - right) * np.hanning(len(left)), 1 << 15))
+                spec = spec / max(np.median(spec[(f > 0.25) & (f < 12)]), 1e-12)
+                tot = spec if tot is None else tot + spec
+                n += 1
+            used.append(pas)
+        row = {"sound": lab, "main_analysis": main.get(lab), "takes": " ".join(used)}
+        if tot is None:
+            row["verdict"] = "Off" if mono and mono == len(used) else "no usable take"
+        else:
+            tot = tot / n
+            h = {k: float(tot[np.abs(f - v) < CHORUS_TOL[k]].max()) for k, v in CHORUS_LFO.items()}
+            for k in h:
+                row[f"height_{k}"] = r(h[k], 1)
+            best, second = sorted(h, key=h.get, reverse=True)[:2]
+            row["verdict"] = best if h[best] >= 6 and h[best] >= 2 * h[second] else "unclear"
+        rows.append(row)
+        old = main.get(lab)
+        if old in ("I", "II", "Off"):
+            if old == row["verdict"]:
+                agree += 1
+            else:
+                differ.append(f"{lab} ({old} -> {row['verdict']})")
+    write(out / "chorus.csv", rows)
+    settled = [f"{row['sound']} {row['verdict']}" for row in rows if row["main_analysis"] == "on"]
+    print(f"  agrees with the main analysis on {agree} sounds; differs on {len(differ)}"
+          + (": " + ", ".join(differ) if differ else ""))
+    print("  undecided in the main analysis: " + ", ".join(settled))
+    counts = {}
+    for row in rows:
+        counts[row["verdict"]] = counts.get(row["verdict"], 0) + 1
+    print("  modes: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())))
+
+
+# ---------------------------------------------------------------- [ENVELOPE]
+ENV_PASSES = (("env000", 0), ("default", 128), ("env255", 255))
+
+
+def release_time(tk: A.Take, gate: float = 6.0, follow: float = 3.0):
+    """Milliseconds after the note-off until the level is 20 dB under its
+    level at the note-off (5 ms frames), digital silence included; None if
+    it stays above for the time followed."""
+    off = tk.level(gate - 0.08, gate - 0.01)
+    t, lv = tk.curve(gate, gate + follow)
+    k = np.flatnonzero(lv <= off - 20)
+    return r(1000 * (t[k[0]] - gate), 0) if len(k) else None
+
+
+def envelope_macro(root: Path, out: Path) -> None:
+    """What [ENVELOPE] does to each sound: the amplitude envelope of the 6 s
+    A2 note at ENV 0 (env000 pass; recorded in chord mode, so levels and
+    times only), 128 (default pass) and 255 (env255 pass), each with the
+    sound's own FILTER, RESONANCE and ATTACK. Sustain: the level over the last
+    0.45 s of the note against its peak, none below -40 dB. Release: the time
+    to fall 20 dB after the note-off (into digital silence included),
+    followed for 3 s. Decay: on a note
+    without sustain, the time to fall 20 dB from the peak. Groups:
+      pluck     no sustain at ENV 0, none (or under -30 dB) at 128, nearly
+                full sustain (above -4 dB) at 255
+      decaying  a faint sustain (-20 dB or less) at 128
+      gated     sustained; releases under 50 ms at ENV 0 and 128
+      tail      sustained; a release of 50 ms or more at 128"""
+    rows = []
+    for i in range(64):
+        lab = A.label(i)
+        row = {"sound": lab}
+        sus, rel, over = {}, {}, []
+        for pas, env in ENV_PASSES:
+            js = root / pas / f"{pas}_P{i + 1:02d}_{lab}.json"
+            if not js.exists():
+                break
+            tk = A.Take(js)
+            if int(tk.meta["prm"]["ENV"]) != env:
+                sys.exit(f"{js}: ENV is {tk.meta['prm']['ENV']}, expected {env}")
+            e = A.envelope(tk, 6.0, 3.0)
+            s = e.get("sustain_db")
+            sus[env] = s if s is not None and s > -40 else None
+            rel[env] = release_time(tk) if sus[env] is not None else None
+            if sus[env] is not None and rel[env] is None:
+                over.append(str(env))          # still above -20 dB after 3 s
+            row[f"sustain_db_env{env}"] = sus[env]
+            row[f"release_ms_env{env}"] = rel[env]
+            row[f"decay_ms_env{env}"] = e.get("decay_to_-20dB_ms") if sus[env] is None or sus[env] < -20 else None
+        else:
+            row["release_over_3s_at_env"] = " ".join(over)
+            s0, s128, s255 = sus[0], sus[128], sus[255]
+            long128 = rel[128] is None or rel[128] >= 50
+            if s0 is None and (s128 is None or s128 <= -30) and s255 is not None and s255 > -4:
+                group = "pluck"
+            elif s128 is None or s128 <= -20:
+                group = "decaying"
+            elif (rel[0] or 0) < 50 and not long128:
+                group = "gated"
+            else:
+                group = "tail"
+            row["group"] = group
+            rows.append(row)
+    write(out / "envelope.csv", rows)
+    for g in ("pluck", "decaying", "gated", "tail"):
+        mine = [row["sound"] for row in rows if row["group"] == g]
+        print(f"  {g} ({len(mine)}): {', '.join(mine)}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("captures", help="folder holding default/ and the experiment folders")
     ap.add_argument("-o", "--output", default="results", help="folder for the CSV files (default results)")
+    ap.add_argument("--only", help="comma-separated analyses to run, e.g. chorus,envelope (default: every one "
+                                   "whose folder exists)")
     args = ap.parse_args()
     root, out = Path(args.captures), Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
@@ -1352,20 +1515,28 @@ def main() -> None:
     def run_longnote(a, b):
         known.extend(longnote(a, b))
 
-    for name, fn in (("tempo150", tempo), ("velocity", velocity), ("poly", poly), ("sweep", sweep),
-                     ("keysync", keysync), ("filters", filters), ("longtail", longtail),
-                     ("longnote", run_longnote), ("keysync2", lambda a, b: keysync(a, b, "keysync2", known)),
-                     ("chord", chord), ("verylong", lambda a, b: longnote(a, b, "verylong")),
-                     ("longnote2", lambda a, b: longnote(a, b, "longnote2")),
-                     ("keysync3", lambda a, b: keysync(a, b, "keysync3", known, track_from=1.0, fit_from=2.0)),
-                     ("open", destinations)):
-        if (root / name).is_dir():
+    # (name, folder that must exist under CAPTURES, analysis)
+    analyses = (("tempo150", "tempo150", tempo), ("velocity", "velocity", velocity), ("poly", "poly", poly),
+                ("sweep", "sweep", sweep), ("keysync", "keysync", keysync), ("filters", "filters", filters),
+                ("longtail", "longtail", longtail), ("longnote", "longnote", run_longnote),
+                ("keysync2", "keysync2", lambda a, b: keysync(a, b, "keysync2", known)),
+                ("chord", "chord", chord), ("verylong", "verylong", lambda a, b: longnote(a, b, "verylong")),
+                ("longnote2", "longnote2", lambda a, b: longnote(a, b, "longnote2")),
+                ("keysync3", "keysync3", lambda a, b: keysync(a, b, "keysync3", known, track_from=1.0, fit_from=2.0)),
+                ("destinations", "open", destinations), ("chorus", "default", chorus_modes),
+                ("envelope", "env000", envelope_macro))
+    only = set(args.only.split(",")) if args.only else None
+    if only and only - {name for name, _, _ in analyses}:
+        sys.exit(f"--only: unknown {', '.join(sorted(only - {name for name, _, _ in analyses}))}")
+    for name, folder, fn in analyses:
+        if (root / folder).is_dir() and (only is None or name in only):
             found = True
             print(f"== {name}")
             fn(root, out)
     if not found:
-        sys.exit(f"no experiment folder (tempo150, velocity, poly, sweep, keysync, filters, "
-                 f"longtail, longnote, keysync2, chord, verylong, longnote2, keysync3) in {root}")
+        sys.exit(f"nothing to analyse in {root}: no folder for the analyses asked "
+                 f"(tempo150, velocity, poly, sweep, keysync, filters, longtail, longnote, keysync2, chord, "
+                 f"verylong, longnote2, keysync3, open, default, env000)")
 
 
 if __name__ == "__main__":

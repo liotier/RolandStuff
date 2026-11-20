@@ -45,22 +45,25 @@ report is his, and so are most of its questions. The receipts:
 | The patch sheet says | The measurements found |
 |---|---|
 | "LFO tied to tempo" (a header line) | Every LFO rate is a note value of the pattern tempo. At 150 instead of 100 BPM, 24 LFOs sped up by a median factor of 1.502, against a tempo ratio of 1.500. |
-| LFO rate "Slow" (9 sounds), "Mid" (24), "Fast" (7) | 0.556-1.667 Hz, 1.25-5 Hz and 4.44-13.33 Hz at 100 BPM: three ordered classes that overlap only at their edges. |
+| LFO rate "Slow" (9 sounds), "Mid" (24), "Fast" (7) | 0.556-1.667 Hz, 1.25-5 Hz and 4.44-13.33 Hz at 100 BPM (4-5's faint vibrato, at 2.22 Hz, aside): three ordered classes that overlap only at their edges. |
 | 6-3, "Square Ring Mod", LFO rate "Max" | A modulation at 53.33 Hz, a 1/128 note at 100 BPM: an LFO at audio rate, which is what a ring-modulator timbre is made of. |
 | 2-1: "LFO retriggers at 1/8th notes ... once Envelope Control is past 50%" | 3.330 Hz with [ENVELOPE] at 255; an eighth note at 100 BPM is 3.333 Hz. |
-| Footnote: "Sustains once Envelope control is past 50%" | On 1-3 a sustain appears between ENV 119 and 136, between 47 % and 53 % of the knob's travel; at 255 all ten plucks sustain. |
+| Footnote: "Sustains once Envelope control is past 50%" | On 1-3 a sustain appears between ENV 119 and 136, between 47 % and 53 % of the knob's travel. |
+| Sustain "Off" at the default, rising with [ENVELOPE] (12 sounds, the footnote's "#") | 11 of them are the plucks of section 2.3, silent before the note-off at ENV 0 and 128 and sustaining at 255; the twelfth, 1-7, sustains at -10 dB after its attack. |
+| Sustain range under [ENVELOPE]: none noted, "(Mid -> High)", "(Low -> High)" | The sustain level rises from ENV 0 to 255 by a median 1.8, 6.1 and 10.2 dB on these three sets: the same order. |
 | 6-8: "Keyboard tracked self-oscilating filtered noise" | Noise through a filter that rings at RESONANCE 255 and follows the keyboard at 1.00 octave per octave. |
 | 8-7 and 8-8: the effect "dissapears for high Filter Settings" | The mechanism that hid 8-2's filter LFO through four rounds of analysis: at its default FILTER of 251 the LFO sweeps a cutoff that already lies above the sound. |
 | Attack "None", "Fast", "Mid", "Slow" | Median attack times of 3 ms, 21 ms, 0.13 s and 1.9 s. |
 | Release "None", "Fast", "Mid", "Slow" | Median release times (to -20 dB) of 9 ms, 40 ms, 0.26 s and 1.0 s. |
 | Cutoff "Low", "Mid", "High"; resonance "Low", "Mid", "High", "Max" | Median default FILTER of 27, 117.5 and 160.5; median default RESONANCE of 0, 43, 158.5 and 255. |
 | Noise absent, "Low", "Mid", "High" | Median noise share of -32.85, -31.0, -27.0 and -10.85 dB: the same order. |
-| Chorus I, II or off | Agreement on 64 of 64 sounds. |
+| Chorus I, II or off | Agreement on 61 of 64 sounds, four of them (1-7, 2-3, 2-6, 5-1) settled only by a finer test made for this report. |
 | Glide | Agreement on the 60 sounds where glide can be measured. |
 | LFO delay | Agreement on 34 of the 37 sounds where an LFO was measured. |
 | Keyboard tracking of the filter | 6-8 and 2-7 tracked (1.00 and 0.50 octave per octave), 4-4 not (0.0); 4-6, marked untracked, follows at 0.31. |
 | A filter LFO on 2-7, 6-4, 6-8, 7-6, 8-2, 8-3 and 8-7, none on 5-3 | Our first analysis disagreed on all eight. Later experiments proved him right on all eight. |
 | A vibrato on 7-3 | Missed at first, then found: 16 cents at a dotted sixteenth. |
+| A slight vibrato on 4-5 | 2-3 cents at a dotted eighth, following the tempo: under our 6-cent detection threshold, found only for this report. |
 | Pulse-width modulation on 4-3, 5-6, 7-1 and 7-4 | Our spectra first read these four as saws: a pulse whose width sweeps widely averages to the spectrum of a saw. With the filter fully open, their even harmonics and their brightness still swing at the LFO's rate (even share by 0.16-0.48, brightness by 0.35-0.68 octave): the waveform itself moves, as he says. |
 
 Where the measurements and the sheet still differ:
@@ -74,9 +77,10 @@ Where the measurements and the sheet still differ:
   its defaults; the low settings he describes were not tested.
 - **1-6**, a filter LFO: measurable only with [ENVELOPE] at 255, where its
   brightness swing at 2.5 Hz could come from the filter or the pulse width.
-- **4-5 and 4-6**, a vibrato ("Low" and "Mid"): none above our 6-cent
-  threshold. 4-5 shows pitch ripples of 2 cents at 2.2 and 4.4 Hz, but they
-  fall within the resolution of the chorus's harmonics.
+- **4-6**, a vibrato ("Mid", with a delay): none found, even below the
+  detection threshold.
+- **2-1, 4-5 and 8-7**, chorus II: all three use a third chorus mode, fast
+  (7.57 Hz) and shallow, which the sheet's I, II and off do not provide for.
 - **Pitch movements he does not list** on 7-6, 8-1, 8-3 and 8-4 (10-14 cents)
   and 5-6 (80 cents). They persist with the filter open, so they are not the
   filter's pull on the pitch; on 5-6 the pulse-width modulation alone may
@@ -110,6 +114,8 @@ Ver. 1.0*, distributed with
 
 One J-6 (system program 1.02, factory reset), each sound at the settings the
 J-6 gives it, pattern tempo 100 BPM. Names as written in Standing's sheet.
+The same data, one field per attribute for sorting and filtering, is in
+[`results/sounds.csv`](results/sounds.csv).
 
 @@TABLE@@
 
@@ -117,10 +123,9 @@ How to read it:
 
 - **Sound**: the panel number (bank-number), with the name Standing gave the
   sound.
-- **Oscillator, chorus**: the harmonic make-up of an A4 note with the filter
-  fully open (FILTER 255, RESONANCE 0), averaged over the note; the waveform
-  on the first line, octave and sub-oscillator on the second, the chorus on
-  the last. "pulse 31 %" is a pulse that is high for 31 % of its period, from
+- **Oscillator**: the harmonic make-up of an A4 note with the filter fully
+  open (FILTER 255, RESONANCE 0), averaged over the note; the waveform on the
+  first line, octave and sub-oscillator on the second. "pulse 31 %" is a pulse that is high for 31 % of its period, from
   the ratio of its first two harmonics. "+1 oct": the oscillator sounds an
   octave above the note played. "sub -3 dB": a square sub-oscillator one
   octave below the oscillator, 3 dB under it. "noise": the energy between the
@@ -130,9 +135,9 @@ How to read it:
   "pulse, PWM" marks the four sounds where, with the filter fully open, both
   the even harmonics and the brightness still swing at the LFO's rate; "saw
   spectrum, PWM per Standing" marks those where this could not be shown.
-  Chorus I or II is told by the rate at which the stereo image pulses
-  (1.09 Hz for I, 1.76 Hz for II); "on" when the mode could not be told; Off
-  is exact mono.
+- **Chorus**: I (its LFO at 0.543 Hz), II (0.879 Hz) or fast (7.57 Hz),
+  from the rate at which the two channels move in opposite phase (section
+  4.5.5); Off is exact mono.
 - **Attack / sustain / release, glide**: the amplitude envelope of a 6 s A2
   note with the filter fully open. Attack: time to come within 3 dB of the
   peak. Sustain: the level at the end of the note, relative to the peak.
@@ -177,11 +182,32 @@ How to read it:
 | FILTER moves the cutoff one octave per 14.4 steps (6-8, below 2 kHz), with offsets of several octaves between sounds and keyboard tracking that differs by sound. | 1 kHz at A2 needs FILTER 158 on 6-8, 78 on 2-7, 31 on 4-6 and less than 17 on 4-4; tracking 1.00, 0.50, 0.31 and 0.0. | `sweep_filter.csv`, `filters*.csv` |
 | RESONANCE lifts the resonant peak by up to about 15 dB and lowers the fundamental by 5-6 dB. | 2-7 at FILTER 69, 16 steps. | `sweep_resonance.csv` |
 | ATTACK stays under 20 ms up to 68, then doubles every 31 steps, to 1.7 s at 255. | 2-7, 16 steps. | `sweep_attack.csv` |
-| [ENVELOPE] moves decay, sustain and release together. On 1-3: a pluck from 0 to 119 (decay to -20 dB from 35 to 215 ms), a sustain from 136 (-18.7 dB) to 255 (-0.7 dB), and releases up to 26.4 s to -60 dB. At 255 every pluck sustains; at 0 the releases shrink to tens of milliseconds. | 1-3: 16 steps, then three notes with 30 s of tail. All 64 sounds at ENV 0 (median release to -20 dB: 29 ms) and at 255 (the ten plucks sustain at -0.7 to -2.4 dB). | `sweep_env.csv`, `longtail.csv`, `measurements.csv` |
-| Chorus I and II are free-running LFOs at 0.543 and 0.879 Hz; chorus off is exact mono. | The stereo difference measured on 20 s notes. | `longnote.csv` |
+| [ENVELOPE] moves decay, sustain and release together, in four ways depending on the sound (section 2.3). On 1-3, a pluck: decay to -20 dB from 35 to 215 ms between 0 and 119, a sustain from 136 (-18.7 dB) to 255 (-0.7 dB), and releases up to 26.4 s to -60 dB. | 1-3: 16 steps, then three notes with 30 s of tail. All 64 sounds at ENV 0, 128 and 255. | `sweep_env.csv`, `longtail.csv`, `envelope.csv` |
+| The chorus has three modes, each a free-running LFO: I at 0.543 Hz, II at 0.879 Hz, and a fast, shallow mode at 7.57 Hz (2-1, 4-5 and 8-7). Chorus off is exact mono. | I and II measured on 20 s notes; the fast mode at the same rate at 100 and 150 BPM; each sound's mode from the opposite-phase movement of its two channels. | `longnote.csv`, `chorus.csv` |
 | MIDI notes play at their pitch when [CHORD] is unlit, and [CHORD] is lit after every power-on. Tuning is within 0.3 cent of A440. | A2 measured at 110.02 Hz. | `measurements.csv` |
 | Glide belongs to each voice: a voice glides from the last pitch it played. | The starting pitch of a glide changes with the voice that plays it. | `measurements.csv` |
 | The J-6 ignores the MIDI message All Sound Off. | Releases ring on through it. | - |
+
+### 2.3 What [ENVELOPE] does to each sound
+
+[ENVELOPE] does not act the same way on every sound. Each sound was recorded
+with the knob at 0, at its default of 128 and at 255, its other settings
+unchanged, and the sounds fall into four groups by what the knob does to
+their sustain and release:
+
+@@BLOCK ENVELOPE groups@@
+
+Sustain is the level at the end of a 6 s note relative to its peak ("none":
+no sustain); release, the time to fall by 20 dB after the note-off, followed
+for 3 s ("-": the note had died before the note-off). In short: plucks need
+the knob past the middle to sustain at all; gated sounds have no release at
+the middle of the knob and get one only above it; sounds with a tail already
+have one at the default, which the knob shortens to tens of milliseconds at 0
+and stretches to seconds at 255. On the sustained sounds the knob also raises
+the sustain level, by a median 5 dB from 0 to 255 (at most 15 dB), and by
+about 20 dB on the decaying tones. Standing's sheet foresaw the plucks: the
+twelve sounds it marks "Off" with the footnote "#" are the eleven plucks and
+1-7. The values for each sound are in section 4.6 and `results/envelope.csv`.
 
 ## 3. How we found out
 
@@ -268,6 +294,10 @@ the vocabulary of Standing's sheet, and of this report.
   (1-5's 3.26 Hz is the sixth harmonic of chorus I) or real LFOs mismeasured
   beside one. Notes of 20 s, whose finer resolution separates rates 0.1 Hz
   apart, sorted them out.
+- **A third chorus.** Besides I and II, three sounds (2-1, 4-5 and 8-7) use a
+  fast, shallow chorus whose LFO runs at 7.57 Hz whatever the tempo: closer to a
+  vibrato that wobbles the two sides of the stereo image in opposite
+  directions.
 - **Pulse-width modulation fools the spectrum and the pitch tracker.** A
   pulse whose width sweeps widely, averaged over time, has a saw's spectrum,
   which is why our first analysis called four PWM sounds saws. A sweep that
@@ -278,10 +308,11 @@ the vocabulary of Standing's sheet, and of this report.
 - **Velocity squared.** The J-6's level follows the square of the MIDI
   velocity: 48 dB from velocity 8 to 127, 12 dB down at 64. Velocity leaves
   the brightness alone.
-- **[ENVELOPE] is a macro.** It moves decay, sustain and release together.
-  On 1-3, below 47 % of its travel the sound is a pluck whose decay lengthens
-  with the knob; above 53 % a sustain appears and the release lengthens, up to
-  26 seconds to fall by 60 dB. At the top of its travel every pluck sustains.
+- **[ENVELOPE] is a macro, and not the same one everywhere.** It moves decay,
+  sustain and release together, but what it does depends on the sound: plucks
+  need it past the middle to sustain at all; "gated" leads and brass get a
+  release only above the middle; pads already have a tail at the default
+  (section 2.3). At the top, 1-3 takes 26 seconds to fall by 60 dB.
 - **FILTER is relative.** The same FILTER value gives cutoffs octaves apart on
   different sounds: 1 kHz on an A2 needs 158 on 6-8, 78 on 2-7, 31 on 4-6 and
   less than 17 on 4-4. Each sound carries its own offset and keyboard
@@ -308,15 +339,16 @@ the vocabulary of Standing's sheet, and of this report.
 | `j6experiments.py` | Analyses the experiment passes, one CSV file (or more) per experiment |
 | `j6synthetic.py` | Builds synthetic takes with known answers for every experiment |
 | `j6compare.py` | Builds `J6_sounds_measured.xlsx`: the measurements beside the patch sheet |
-| `report/` | Builds this README: `bash report/build.sh` fills `README.tmpl.md` with the tables generated from `results/` (`table.py`, `blocks.py`); `checks.py` repeats the ad hoc checks quoted in the text; `receipts.py` computes section 1's comparisons from Standing's sheet |
+| `report/` | Builds this README: `bash report/build.sh` fills `README.tmpl.md` with the tables generated from `results/` (`table.py`, which also writes `results/sounds.csv`, and `blocks.py`); `checks.py` repeats the ad hoc checks quoted in the text; `receipts.py` computes section 1's comparisons from Standing's sheet |
 
 `results/` holds `defaults.csv` (the harvest), `measurements.csv` (the main
-passes), the workbook, and the experiments' files: `tempo.csv`,
+passes), `sounds.csv` (the results table of section 2.1, one field per
+attribute), the workbook, and the experiments' files: `tempo.csv`,
 `velocity.csv`, `poly.csv`, `sweep_filter.csv`, `sweep_resonance.csv`,
 `sweep_attack.csv`, `sweep_env.csv`, `keysync.csv`, `filters.csv`,
 `filters_curve.csv`, `filters_summary.csv`, `longtail.csv`, `longnote.csv`,
-`keysync2.csv`, `chord.csv`, `verylong.csv`, `longnote2.csv`, `keysync3.csv`
-and `destinations.csv`, with per-note (`*_notes.csv`) and jitter
+`keysync2.csv`, `chord.csv`, `verylong.csv`, `longnote2.csv`, `keysync3.csv`,
+`destinations.csv`, `chorus.csv` and `envelope.csv`, with per-note (`*_notes.csv`) and jitter
 (`*_jitter.csv`) companions; `results/synthetic/` holds the synthetic
 validation's output. Each script's docstring defines its columns.
 
@@ -595,6 +627,22 @@ the median names the mode. Measured more finely on the 20 s notes, the chorus
 LFOs run at 0.5415-0.5428 Hz (I) and 0.8792-0.8810 Hz (II) and do not follow
 the tempo. Wikipedia's JUNO-60 article gives 0.4 and 0.6 Hz for the
 original's chorus; no primary source was found to compare with.
+
+This test left 7 sounds undecided ("on"): an LFO of the sound or a short
+note can drown the pulsing of the stereo image. A second test
+(`chorus_modes` in `j6experiments.py`) uses another property of a chorus:
+it sweeps the delays of the two channels in opposite directions, so their
+pitch and brightness move in opposite phase at the chorus LFO's rate,
+whereas the J-6's LFOs move both channels together. The left-minus-right
+difference of the pitch and brightness traces cancels everything the
+channels share. Its spectra, from every 6 s A2 note available (default,
+open, env255 and tempo150 passes), each divided by its median over
+0.25-12 Hz and averaged, are read at the three chorus LFO rates; the
+tallest wins if it stands 6 times above the median and twice above the
+next. On 2-1, 4-5 and 8-7 the difference moves at 7.57 Hz (at 100 as at
+150 BPM on 4-5 and 8-7; 2-1 sustains only at ENV 255, recorded at 100 BPM):
+a third chorus mode, faster and shallower (the stereo difference lies 11 to
+20 dB under the sum, against 3 to 8 dB for I and II).
 
 #### 4.5.6 Oscillator make-up
 
@@ -918,6 +966,18 @@ Replaying the old measurement on these notes reproduces the earlier false
 restart: the first 3.5 s fitted from 1 s give 0.91 against the note-on,
 while a 3.5 s window starting 2 s in gives 0.95 against the clock.
 
+**Chorus modes** (section 4.5.5: heights of the left-minus-right spectra
+at the three chorus LFO rates, against their median; the sounds the main
+analysis had left undecided):
+
+@@BLOCK Chorus modes@@
+
+**[ENVELOPE] per sound** (sustain at the end of a 6 s A2 note against its
+peak, and release to -20 dB after the note-off, followed for 3 s; ENV 0 was
+recorded in chord mode, which leaves levels and times usable):
+
+@@BLOCK ENVELOPE per sound@@
+
 **Destinations** (swing at the LFO rate; "a / b" is the filter at the
 sound's setting / fully open; plucks on the ENV 255 pass):
 
@@ -1001,6 +1061,15 @@ In the order they happened.
     sounds saws (4.5.6). The table now says "pulse, PWM" where the even
     harmonics and the brightness both swing with the filter fully open
     (4.5.15).
+19. **Chorus "on".** The first chorus test left seven sounds undecided, and
+    the report first printed them as "chorus on". The opposite-phase test
+    (4.5.5) settled four as chorus I and found the third mode on the other
+    three.
+20. **4-5's vibrato.** Its 2-cent pitch ripples at 2.22 and 4.44 Hz were
+    first put down to harmonics of the chorus LFO, on the assumption that
+    4-5 used chorus I or II. With its chorus at 7.57 Hz, that explanation
+    fell; at 150 BPM the ripples move to 3.33 and 6.67 Hz, the same note
+    values: a tempo-synced vibrato, as Standing heard.
 
 ### 4.8 Synthetic validation
 
@@ -1047,9 +1116,9 @@ recorded here.
   their LFO phase is not tested, and 1-4's slow movement is unverified.
 - Rates below 0.3 Hz are not detected on 6 s notes; the 90 s notes reach
   0.056 Hz, but only on 8-2.
-- A vibrato under 6 cents escapes the main analysis (4-5 shows 2-cent ripples
-  that coincide with chorus harmonics); so does a filter movement under a
-  tenth of a noisy source's jitter (5-5).
+- A vibrato under 6 cents escapes the main analysis (4-5's 2-cent vibrato was
+  found only by comparing note values at two tempi); so does a filter
+  movement under a tenth of a noisy source's jitter (5-5).
 - 4-2's "Wide LFO Filter Sweep for low Filter/Envelope values" is not tested
   at low settings.
 - Whether the LFOs of 6-3, 8-7 and 8-8 also restart when notes join held ones
@@ -1092,6 +1161,8 @@ overwrites all 64 patterns: keep a backup of your own.
    ```
 
 5. Or let `j6passes.sh` chain all of it for the named passes (section 4.4).
+   `j6experiments.py --only chorus,envelope` runs chosen analyses instead of
+   every one whose folder exists.
    `J6_MOUNT` overrides the drive's mount point (default `/media/$USER/J-6`),
    and `J6_PATTERNS=1..3` limits a run to a few patterns.
 

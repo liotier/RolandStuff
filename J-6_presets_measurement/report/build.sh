@@ -7,6 +7,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-python3 report/table.py results > "$tmp/table.md"
+python3 report/table.py results results/sounds.csv > "$tmp/table.md"
 python3 report/blocks.py results results/synthetic > "$tmp/blocks.md"
 python3 report/assemble.py report/README.tmpl.md "$tmp/table.md" "$tmp/blocks.md" README.md

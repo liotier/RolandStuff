@@ -23,6 +23,12 @@ meas = {r["sound"]: r for r in csv.DictReader(open(meas_csv))}
 # Experiment results from j6experiments.py, when present beside the measurements
 from pathlib import Path
 res_dir = Path(meas_csv).parent
+# Chorus modes from the opposite-phase test (j6experiments.py chorus), when present
+_chorus_csv = Path(meas_csv).parent / "chorus.csv"
+if _chorus_csv.exists():
+    for _r in csv.DictReader(open(_chorus_csv)):
+        if _r["verdict"] in ("I", "II", "fast", "Off") and _r["sound"] in meas:
+            meas[_r["sound"]]["chorus"] = _r["verdict"]
 keysync, ftrack = {}, {}
 if (res_dir / "keysync.csv").exists():
     rank = {"restarts with each note": 0, "free-running": 1, "unclear": 2, "no LFO found": 3}
@@ -105,7 +111,7 @@ cols = [  # (header, source, key, number format, width, comment)
     ("Name (spreadsheet)", "name", None, None, 34, "Grey columns quote the reference spreadsheet for comparison: Nick Standing (JabunAudio), 'Roland J-6 Preset Sounds Settings Ver. 1.0', patch sheet published with the video 'Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet! (Free download or donation)', https://www.youtube.com/watch?v=z6hoNwWadR8. This column is the text before the colon in its Notes column."),
     ("Modulation measurable", "modok", None, None, 12, "'no' when no take of the sound lasts 1.5 s. Plucks are measured on the env255 pass, where [ENVELOPE] at 255 makes them sustain."),
     ("Chorus (sheet)", "sheet", "chorus", None, 9, None),
-    ("Chorus (measured)", "meas", "chorus", None, 10, "I or II from the rate at which the stereo difference/sum energy ratio pulses (1.09 Hz for I, 1.76 Hz for II); Off when the channels are identical; 'on' when chorus is present but the rate is unclear."),
+    ("Chorus (measured)", "meas", "chorus", None, 10, "I (LFO at 0.543 Hz), II (0.879 Hz) or fast (7.57 Hz), from the rate at which the two channels move in opposite phase (chorus.csv); Off when the channels are identical."),
     ("Chorus agree", "f_chorus", None, None, 9, None),
     ("Glide (sheet)", "sheet", "glide", None, 9, None),
     ("Glide settle (ms)", "meas", "glide_ms", "0", 10, "Time from the moment the E3 note dominates until its pitch stays within 30 cents of E. Counted only if the pitch passes through intermediate values; 0 means it jumped. Each voice glides from the last pitch it played."),
@@ -301,6 +307,8 @@ lines = [
     ("RESONANCE (sound 2-7): at 255 the resonant peak stands about 15 dB above its level at 0 and the fundamental drops 5-6 dB.", False),
     ("ATTACK (sound 2-7): rise to -3 dB under 20 ms up to 68, then doubling every 31 steps to 1.7 s at 255; release unaffected.", False),
     ("ENV (sound 1-3): 0-119 is a pluck whose decay to -20 dB lengthens from 35 to 215 ms; from 136 a sustain appears (-19 dB) and rises to -0.7 dB at 255 while the release to -20 dB lengthens from 0.3 s at 136 to 5.6 s at 221, beyond the 7.5 s measured at 238 and 255.", False),
+    ("Chorus modes (chorus.csv): the chorus sweeps the two channels in opposite phase, so the left-minus-right difference of pitch and brightness shows the chorus LFO alone. It confirms the 57 sounds the first test had decided and settles the 7 it had left undecided: 1-7, 2-3, 2-6 and 5-1 use chorus I; 2-1, 4-5 and 8-7 a third mode, fast (7.57 Hz, the same at 100 and 150 BPM) and shallow, which the reference spreadsheet hears as II.", False),
+    ("[ENVELOPE] (envelope.csv, every sound at ENV 0, 128 and 255): four groups. Plucks (11) sustain only past the middle of the knob; decaying tones (3) keep a faint sustain; gated sounds (18) have releases under 50 ms up to the middle; the others (32) have a release tail at the default.", False),
     ("Long releases (1-3, one note, 30 s of release): at ENV 221 the release falls 3.5 dB/s (-60 dB after 17 s); at ENV 238 and 255 it is the same, 2.27 dB/s (-60 dB after 26.4 s): the release reaches its longest at 238.", False),
     ("", False),
     ("Sources", True),

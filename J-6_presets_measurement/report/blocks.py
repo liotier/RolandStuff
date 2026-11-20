@@ -117,6 +117,95 @@ for name, label in (("keysync", "keysync (7 notes of 3.5 s)"), ("keysync2", "key
                          fmt(r.get("concentration_re_note_on"), 2), fmt(r.get("concentration_re_take"), 2), r["verdict"]]))
 rows.sort(key=lambda x: (x[0], ("keysync", "keysync2", "keysync3").index(x[1])))
 table(["sound", "pass", "BPM", "measured on", "rate (Hz)", "note", "against the note-on", "against the clock", "verdict"], [r for _, _, r in rows])
+# ---- chorus modes
+ch = rd("chorus")
+out.append("### Chorus modes")
+def hgt(r, k): return fmt(r.get(f"height_{k}"), 1)
+table(["sound", "main analysis", "height at 0.543 Hz (I)", "at 0.880 Hz (II)", "at 7.57 Hz (fast)", "verdict"],
+      [[r["sound"], r["main_analysis"], hgt(r, "I"), hgt(r, "II"), hgt(r, "fast"), r["verdict"]]
+       for r in ch if r["main_analysis"] not in ("I", "II", "Off") or r["verdict"] != r["main_analysis"]])
+known = [r for r in ch if r["main_analysis"] in ("I", "II")]
+ratios = []
+for r in known:
+    h = sorted((float(r[f"height_{k}"]) for k in ("I", "II", "fast")), reverse=True)
+    ratios.append(h[0] / h[1])
+agree = sum(r["verdict"] == r["main_analysis"] for r in known)
+offs = [r for r in ch if r["main_analysis"] == "Off"]
+out.append(f"On the {len(known)} sounds the main analysis had named I or II, the test agrees on {agree}, the winning "
+           f"height standing {min(ratios):.1f} to {max(ratios):.1f} times above the next (median {st.median(ratios):.1f}); "
+           f"the {len(offs)} sounds it found off are exact mono on every take ({sum(r['verdict'] == 'Off' for r in offs)} of {len(offs)}).")
+out.append("")
+
+# ---- [ENVELOPE]
+ev = rd("envelope")
+def val(x):
+    try: return float(x)
+    except (TypeError, ValueError): return None
+def rel_txt(r, env):
+    v = val(r[f"release_ms_env{env}"])
+    if v is not None:
+        return f"{v / 1000:.1f} s" if v >= 1000 else f"{v:.0f} ms"
+    return "over 3 s" if str(env) in r["release_over_3s_at_env"].split() else "-"
+def cell(r, env):
+    s_, dec = val(r[f"sustain_db_env{env}"]), val(r[f"decay_ms_env{env}"])
+    if s_ is None:
+        return f"no sustain; -20 dB in {dec / 1000:.1f} s" if dec and dec >= 1000 else (f"no sustain; -20 dB in {dec:.0f} ms" if dec else "no sustain")
+    v = round(s_)
+    txt = f"{0 if v == 0 else v} dB"
+    if dec and s_ <= -20:
+        txt += f" after a {dec / 1000:.1f} s decay" if dec >= 1000 else f" after a {dec:.0f} ms decay"
+    return f"{txt}; release {rel_txt(r, env)}"
+def ms(x):
+    return "-" if x is None else (f"{x / 1000:.1f} s" if x >= 1000 else f"{x:.0f} ms")
+GROUPS = [("pluck", "Pluck"), ("decaying", "Decaying tone"), ("gated", "Gated"), ("tail", "With a tail")]
+def sus_med(mine, e):
+    """Median sustain, a note without sustain counting as the lowest."""
+    v = sorted((val(r[f"sustain_db_env{e}"]) if val(r[f"sustain_db_env{e}"]) is not None else -999) for r in mine)
+    m_ = st.median(v)
+    return "none" if m_ <= -999 else f"{m_:.0f} dB"
+def rel_med(mine, e):
+    """Median release over the members that sustain at e (3 s and more as such);
+    '-' when fewer than half of them sustain."""
+    v = []
+    for r in mine:
+        if val(r[f"sustain_db_env{e}"]) is None:
+            continue
+        x = val(r[f"release_ms_env{e}"])
+        v.append(x if x is not None else (3001 if str(e) in r["release_over_3s_at_env"].split() else None))
+    v = [x for x in v if x is not None]
+    if len(v) * 2 < len(mine):
+        return "-"
+    m_ = st.median(v)
+    return "over 3 s" if m_ > 3000 else ms(m_)
+def dec_med(mine, e):
+    return ms(st.median([val(r[f"decay_ms_env{e}"]) for r in mine if val(r[f"decay_ms_env{e}"]) is not None]))
+def members(key):
+    return [r for r in ev if r["group"] == key]
+P, D, G, T = (members(k) for k in ("pluck", "decaying", "gated", "tail"))
+gated_short = [r["sound"] for r in G if val(r["release_ms_env255"]) is not None and val(r["release_ms_env255"]) < 50]
+tail_over = sum(1 for r in T if "255" in r["release_over_3s_at_env"].split())
+WHAT = {
+ "pluck": f"No sustain up to the middle of the knob, which sets how fast the note dies away (to -20 dB in a median "
+          f"{dec_med(P, 0)} at 0, {dec_med(P, 128)} at 128). Past the middle a sustain appears, which reaches nearly full level at 255.",
+ "decaying": f"A faint sustain up to the middle, raised to about -10 dB at the top; the decay and the release lengthen "
+             f"with the knob.",
+ "gated": f"Sustained at every setting, but up to the middle of the knob the release stays under 50 ms, as if gated; "
+          f"towards the top a release appears ({' and '.join(gated_short)} stay gated even at 255).",
+ "tail": f"Sustained at every setting, with a release tail already at the middle of the knob; at 255 the release "
+         f"lasts over 3 s on {tail_over} of the {len(T)}.",
+}
+out.append("### ENVELOPE groups")
+rows = []
+for key, name in GROUPS:
+    mine = members(key)
+    rows.append([name, WHAT[key], ", ".join(r["sound"] for r in mine) + f" ({len(mine)})",
+                 " / ".join(sus_med(mine, e) for e in (0, 128, 255)), " / ".join(rel_med(mine, e) for e in (0, 128, 255))])
+table(["group", "what [ENVELOPE] does", "sounds", "median sustain at ENV 0 / 128 / 255", "median release at ENV 0 / 128 / 255"], rows)
+out.append("### ENVELOPE per sound")
+gname = dict(GROUPS)
+table(["sound", "group", "ENV 0", "ENV 128 (default)", "ENV 255"],
+      [[r["sound"], gname[r["group"]], cell(r, 0), cell(r, 128), cell(r, 255)] for r in ev])
+
 if len(sys.argv) > 2:
     S = sys.argv[2]
     def sd(n): return list(csv.DictReader(open(f"{S}/{n}.csv")))

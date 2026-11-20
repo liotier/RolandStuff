@@ -17,13 +17,14 @@ sheet = {}
 for r in ref.iter_rows(min_row=7, values_only=True):
     if r[0] and re.match(r"\d - \d", str(r[0])):
         sheet[str(r[0]).replace(" ", "")] = r
-# table.md: LFO rate Hz
+# table.md: LFO rate (Hz) from the LFO cell
 hz = {}
 for line in open(T):
     c = [x.strip() for x in line.split("|")[1:-1]]
-    if len(c) > 8 and re.match(r"\d-\d$", c[0]):
-        m = re.search(r"\(([\d.]+) Hz\)", c[7])
-        hz[c[0]] = float(m.group(1)) if m else None
+    k = re.match(r"\*\*(\d-\d)\*\*", c[0]) if c else None
+    if k:
+        m = re.search(r"\(([\d.]+)&nbsp;Hz\)", c[4])
+        hz[k.group(1)] = float(m.group(1)) if m else None
 print("== LFO rate classes (sheet Rate column) against settled rates")
 cls = {}
 for s, r in sheet.items():
@@ -69,3 +70,25 @@ for col in ("Chorus agree", "Glide agree", "Vibrato agree", "Filter LFO agree", 
 print("== disagreements (vibrato, filter LFO)")
 for col, sc in (("Vibrato agree", "DCO LFO (sheet)"), ("Filter LFO agree", "VCF LFO (sheet)")):
     print(f"  {col}: {[(r['Sound'], r[sc]) for r in rows if r[col] == 'no']}")
+
+print("== Sustain control range (sheet S column) against [ENVELOPE] (results/envelope.csv)")
+import csv
+ev = {r["sound"]: r for r in csv.DictReader(open(f"{R}/envelope.csv"))}
+def f_(x):
+    try: return float(x)
+    except (TypeError, ValueError): return None
+plucks = sorted(s_ for s_, r in ev.items() if r["group"] == "pluck")
+off_hash = sorted(s_ for s_, r in sheet.items() if str(r[21]).startswith("Off"))
+print("  sheet 'Off ... #':", off_hash)
+print("  measured plucks:  ", plucks)
+by = {}
+for s_, r in sheet.items():
+    rng = str(r[21]).strip()
+    m_ = re.search(r"\((\w+) -> (\w+)\)", rng)
+    key = f"({m_.group(1)} -> {m_.group(2)})" if m_ else "no range"
+    e = ev[s_]
+    s0, s255 = f_(e["sustain_db_env0"]), f_(e["sustain_db_env255"])
+    if s0 is not None and s255 is not None:
+        by.setdefault(key, []).append(s255 - s0)
+for k, v in sorted(by.items(), key=lambda kv: st.median(kv[1])):
+    print(f"  {k:16s}: {len(v)} sustained sounds, sustain change from ENV 0 to 255 median {st.median(v):.1f} dB (range {min(v):.1f} to {max(v):.1f})")
