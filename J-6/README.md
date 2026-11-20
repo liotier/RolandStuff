@@ -291,8 +291,8 @@ oscillator: 4-4 reads 0.63 there and 0.0 in the filter sweep, 2-7 0.78 and
 ## Experiments
 
 Further pattern sets, recorded with `bash j6passes.sh tempo150 sweep`,
-`bash j6passes.sh keysync filters` and `bash j6passes.sh closing` (one
-restore each) and analysed with
+`bash j6passes.sh keysync filters`, `bash j6passes.sh closing` and
+`bash j6passes.sh final` (one restore each) and analysed with
 `python3 j6experiments.py captures`, which writes CSV files into `results/`
 and prints a summary:
 
@@ -302,6 +302,7 @@ and prints a summary:
 | `sweep` | 16 steps (0, 17 ... 255) of FILTER on 6-8, RESONANCE on 2-7, ATTACK on 2-7, ENV on 1-3 | full stimulus, then the ENV sweep with long tails | knob value against cutoff (Hz, read from the self-oscillating filter), resonance, attack time, decay / sustain / release |
 | `keysync` | every sound at its defaults (8-7 at 150 BPM) | `retrig` on the 38 sounds with an LFO that sustain: seven A2 notes of 3.5 s at irregular spacing | does each LFO (and 8-7's sample and hold) restart with each note or run freely |
 | `filters` | 6-8, 2-7, 4-6, 4-4: FILTER 255 / RESONANCE 0, then FILTER 17 ... 238 at RESONANCE 255; 1-3 at ENV 221, 238, 255 | `filter` (A1, A2, A3, A4, 2 s each) on the first 60; `longtail` (one 6 s note, 30 s of release) on the last three | each sound's cutoff offset, steps per octave and keyboard tracking; releases longer than 7.5 s |
+| `final` | 8-2 at its defaults (FILTER 251) at 100 and 60 BPM, and at FILTER 140 and 100; 5-5 at FILTER 255 / RESONANCE 0, 120 / 0 and its defaults | `verylong` (one 90 s note) on the first two; `longnote` on the others, into `longnote2` | an 8-2 LFO slower than 0.25 Hz, or one its open filter hides; a filter movement on 5-5 told from the noise of its source |
 | `closing` | 8-8 at 60 and 70 BPM; 5-3, 6-3, 8-2 at 100 and 60 BPM; 3-6, 5-5, 5-8, 7-2, 8-3 at 100 and 60 BPM; 6-5 and 5-6 | `longnote` (one 20 s A2 note) on all but 6-5 and 5-6; `retrig8` (eight A2 notes) on those at 60-100 BPM; `chord` (four staggered notes) on 5-3, 6-3, 8-2, 6-5, 5-6 | does 8-8's 13.33 Hz LFO follow the tempo; exact rates, tempo sync and phase of the unclear sounds; do sounds where no LFO was found have one; do the voices share one LFO phase |
 
 `j6prm.py generate --plan sweep` builds the sweep set (the plan is built in);

@@ -10,7 +10,8 @@
 #                                     # and polyphony tests), sweep (knob sweeps),
 #                                     # keysync (do LFOs restart with each note),
 #                                     # filters (cutoff per sound, long releases),
-#                                     # closing (the questions those left open)
+#                                     # closing (the questions those left open),
+#                                     # final (8-2's and 5-5's filter modulation)
 #
 # Run it from the experiment folder, which holds the scripts,
 # Factory_backup/ and Harvest_backup/; it creates passes/ and captures/ there.
@@ -26,7 +27,7 @@ PATTERNS=${J6_PATTERNS:-1..64}  # e.g. J6_PATTERNS=1..3 for a pilot
 
 declare -A GEN=([default]="" [open]="--filter 255 --resonance 0" [env000]="--env 0" [env255]="--env 255"
                 [tempo150]="--bpm 150" [sweep]="--plan sweep" [keysync]="--plan keysync" [filters]="--plan filters"
-                [closing]="--plan closing")
+                [closing]="--plan closing" [final]="--plan final")
 # the sounds with an LFO (or 8-7's sample and hold) that sustain at their defaults
 LFO_SOUNDS=1-7,2-6,2-7,2-8,3-6,3-8,4-1,4-3,4-4,5-1,5-2,5-3,5-4,5-5,5-6,5-7,5-8,6-2,6-3,6-4,6-5,6-7,6-8,7-1,7-2,7-3,7-4,7-5,7-6,7-7,7-8,8-1,8-2,8-3,8-4,8-6,8-7,8-8
 # Recordings after each restore: "name|patterns|stimulus|settle", into captures/name.
@@ -38,7 +39,8 @@ declare -A RUNS=([default]="default|$PATTERNS|full|1" [open]="open|$PATTERNS|ful
                  [sweep]="sweep|1..48|full|1 sweep|49..64|envelope|10"
                  [keysync]="keysync|$LFO_SOUNDS|retrig|1"
                  [filters]="filters|1..60|filter|1 longtail|61..63|longtail|5"
-                 [closing]="longnote|1..13,16..20|longnote|1 keysync2|1..13|retrig8|1 chord|3,5,7,14,15|chord|1")
+                 [closing]="longnote|1..13,16..20|longnote|1 keysync2|1..13|retrig8|1 chord|3,5,7,14,15|chord|1"
+                 [final]="verylong|1..2|verylong|1 longnote2|3..7|longnote|1")
 if [ $# -gt 0 ]; then PASSES=("$@"); else PASSES=(open env000 env255); fi
 for p in "${PASSES[@]}"; do
   [ -n "${GEN[$p]+set}" ] || { echo "unknown pass '$p' (known: ${!GEN[*]})"; exit 1; }

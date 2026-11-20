@@ -244,8 +244,21 @@ def closing_plan() -> dict[int, dict]:
     return {n: {"sound": idx(lab), "BPM": float(bpm)} for n, (lab, bpm) in enumerate(steps, 1)}
 
 
+def final_plan() -> dict[int, dict]:
+    """Built-in plan 'final': 8-2 at its defaults (FILTER 251, nearly open)
+    at 100 and 60 BPM (patterns 1-2, 90 s notes: an LFO slower than 0.25 Hz);
+    8-2 at FILTER 140 and 100 (3-4: a filter LFO the open filter hides);
+    5-5 at FILTER 255 / RESONANCE 0, 120 / 0 and its defaults (5-7: a filter
+    movement against the noise of its source)."""
+    return {1: {"sound": 57, "BPM": 100.0}, 2: {"sound": 57, "BPM": 60.0},
+            3: {"sound": 57, "BPM": 100.0, "FILTER": 140}, 4: {"sound": 57, "BPM": 100.0, "FILTER": 100},
+            5: {"sound": 36, "BPM": 100.0, "FILTER": 255, "RESONANCE": 0},
+            6: {"sound": 36, "BPM": 100.0, "FILTER": 120, "RESONANCE": 0},
+            7: {"sound": 36, "BPM": 100.0}}
+
+
 BUILTIN_PLANS = {"sweep": sweep_plan, "filters": filters_plan, "keysync": keysync_plan,
-                 "closing": closing_plan}
+                 "closing": closing_plan, "final": final_plan}
 
 
 def read_plan(path) -> dict[int, dict]:
@@ -354,7 +367,7 @@ def main() -> None:
     p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
-    p.add_argument("--plan", help="'sweep', 'filters', 'keysync' or 'closing' (built in), or a CSV giving each pattern its sound "
+    p.add_argument("--plan", help="'sweep', 'filters', 'keysync', 'closing' or 'final' (built in), or a CSV giving each pattern its sound "
                    "and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
     p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
                    "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")

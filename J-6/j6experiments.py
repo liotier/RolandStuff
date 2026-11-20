@@ -33,6 +33,9 @@ filters    FILTER 17-238 at RESONANCE 255 on 6-8, 2-7, 4-6 and 4-4, notes A1
            to A4: each sound's cutoff offset, steps per octave and keyboard
            tracking, from the resonant peak against a FILTER 255 reference
 longtail   1-3 at ENV 221, 238 and 255: releases of many seconds
+verylong   as longnote, 90 s notes: modulations down to 0.056 Hz
+longnote2  as longnote, sounds at several FILTER settings: a filter LFO hidden
+           by an open filter, a filter movement told from the source's noise
 longnote   one 20 s A2 note: every modulation's exact rate, whether it is a
            note value or a harmonic of the chorus LFO, and, for a sound
            recorded at two tempos, whether it follows the tempo
@@ -447,8 +450,8 @@ def concentration(angles) -> float:
 
 # Note values for reporting a measured rate, the triplet whole note included
 # (two slow LFOs run at 0.624 Hz, 2 2/3 beats at 100 BPM)
-REPORT_VALUES = sorted(A.NOTE_VALUES + [(8 / 3, "1/1T"), (6, "1/1."), (8, "2/1"), (1 / 16, "1/64"),
-                                        (1 / 32, "1/128")], reverse=True)
+REPORT_VALUES = sorted(A.NOTE_VALUES + [(8 / 3, "1/1T"), (6, "1/1."), (8, "2/1"), (16, "4/1"), (32, "8/1"),
+                                        (1 / 16, "1/64"), (1 / 32, "1/128")], reverse=True)
 
 
 def nearest_value(rate: float, bpm: float):
@@ -855,6 +858,14 @@ def mod_series(tk: A.Take, end: float):
     return out
 
 
+def band_rms(x, lo, hi, hop=0.01) -> float:
+    """RMS of x within lo-hi Hz (Parseval on the windowless spectrum)."""
+    spec = np.fft.rfft(x - np.mean(x))
+    f = np.fft.rfftfreq(len(x), hop)
+    sel = (f >= lo) & (f < hi)
+    return float(np.sqrt(2 * np.sum(np.abs(spec[sel]) ** 2)) / len(x))
+
+
 def peak_height(series, f, hop=0.01):
     """Height of the spectral peak within 0.03 Hz of f against the median
     0.15-18 Hz, and its rate."""
@@ -873,7 +884,7 @@ def audio_components(tk: A.Take, start: float, end: float, f0: float):
     modulation, as on a ring-modulated sound. Vibrato sidebands stay far
     below 10 dB. Frequencies refined by a parabola."""
     from scipy.signal import find_peaks
-    f, m = A.spectrum(tk.seg(start, end), tk.sr, 1 << 21)
+    f, m = A.spectrum(tk.seg(start, min(end, start + 40)), tk.sr, 1 << 21)
     sel = (f > 15) & (f < 4000)
     f, m = f[sel], m[sel]
     db = 20 * np.log10(m / m.max() + 1e-12)
@@ -886,9 +897,11 @@ def audio_components(tk: A.Take, start: float, end: float, f0: float):
     return out
 
 
-def longnote(root: Path, out: Path) -> list[dict]:
-    """One 20 s A2 note per take. On the pitch, brightness and even-harmonic
-    tracks, every spectral peak 0.25-18 Hz that stands 8 times above the
+def longnote(root: Path, out: Path, folder: str = "longnote") -> list[dict]:
+    """One long A2 note per take (20 s; 90 s in verylong). On the pitch,
+    brightness and even-harmonic tracks, every spectral peak from five
+    cycles per note (0.25 Hz on 20 s, 0.056 Hz on 90 s) to 18 Hz that
+    stands 8 times above the
     median and moves both channels in phase, with its swing (a weaker one
     only above a tenth of the strongest and 0.25 Hz from it, clear of the
     window's sidelobes); each is named by its nearest note value at the
@@ -900,25 +913,43 @@ def longnote(root: Path, out: Path) -> list[dict]:
     and audio-rate components below the note are listed (for those, the
     prominence column holds their level in dB against the strongest
     component).
-    For a sound recorded at two tempos, each modulation found at one tempo
+    For a sound recorded at two tempos (same FILTER and RESONANCE), each
+    modulation found at one tempo
     is looked for in the other take at the rate scaled by the tempo ratio
     and at the same rate: the taller peak (8 times the median at least, and
     twice the other) says whether it follows the tempo or is fixed; a
     candidate rate on a harmonic of that take's chorus LFO counts for
-    nothing (the peak found within 0.02 Hz of one)."""
-    rows, takes_by = [], {}
-    for tk in takes(root / "longnote"):
+    nothing (the peak found within 0.02 Hz of one).
+
+    Each take also gets its brightness jitter, 0.5-5 and 5-45 Hz, split
+    into what moves both channels together (a modulation of the sound) and
+    what differs between them (the chorus acting on noise, estimation
+    noise): comparing takes of one sound at different FILTER settings tells
+    a filter movement, which vanishes with the filter open, from the noise
+    of the source, which stays (written to FOLDER_jitter.csv)."""
+    rows, takes_by, jit = [], {}, []
+    for tk in takes(root / folder):
         lab = sound_of(tk)
         bpm = float(tk.meta["prm"].get("TEMPO", 10000)) / 100
+        knobs = (int(tk.meta["prm"].get("FILTER", -1)), int(tk.meta["prm"].get("RESONANCE", -1)))
+        tag = f"{lab} at {bpm:g} BPM, FILTER {knobs[0]} RESONANCE {knobs[1]}"
         e = tk.events["long_A2"]
         end = min(A.audible_until(tk, e["off"]), e["off"] - 0.05)
         if end < 4:
-            print(f"  {lab} at {bpm:g} BPM: the note lasts {end:.1f} s, too short")
+            print(f"  {tag}: the note lasts {end:.1f} s, too short")
             continue
         ch = A.chorus(tk, 0.3, end).get("chorus", "on")
         clfo = measured_chorus_lfo(tk, 0.3, end, ch)
         series = mod_series(tk, end)
-        takes_by[(lab, bpm)] = (tk, end, series, clfo)
+        takes_by[(lab, bpm, knobs)] = (tk, end, series, clfo)
+        fmin = max(0.05, 5 / end)
+        if series["filter LFO"] is not None:
+            left, right, _ = series["filter LFO"]
+            row = {"sound": lab, "tempo_bpm": bpm, "FILTER": knobs[0], "RESONANCE": knobs[1]}
+            for lo, hi in ((0.5, 5), (5, 45)):
+                c, d = band_rms((left + right) / 2, lo, hi), band_rms((left - right) / 2, lo, hi)
+                row[f"together_{lo:g}_{hi:g}_oct"], row[f"apart_{lo:g}_{hi:g}_oct"] = r(c, 4), r(d, 4)
+            jit.append(row)
         found = []
         for kind, least in (("vibrato", 6.0), ("filter LFO", 0.1), ("PWM", 0.05)):
             if series[kind] is None:
@@ -926,7 +957,7 @@ def longnote(root: Path, out: Path) -> list[dict]:
             left, right, mean = series[kind]
             spec = np.abs(np.fft.rfft(mean * np.hanning(len(mean)), 1 << 16))
             f = np.fft.rfftfreq(1 << 16, 0.01)
-            sel = np.flatnonzero((f > 0.25) & (f < 18))   # 5 cycles in 20 s at least
+            sel = np.flatnonzero((f > fmin) & (f < 18))   # 5 cycles per note at least
             base = max(np.median(spec[sel]), 1e-12)
             peaks = [i for i in sel[1:-1] if spec[i] >= spec[i - 1] and spec[i] >= spec[i + 1] and spec[i] / base >= 8]
             peaks = sorted(peaks, key=lambda i: -spec[i])
@@ -960,27 +991,28 @@ def longnote(root: Path, out: Path) -> list[dict]:
         for fr, level in audio_components(tk, 2.0, end, A.A2):
             found.append(("audio-rate component", fr, level, None))
         if not found:
-            rows.append({"sound": lab, "tempo_bpm": bpm, "chorus": ch, "measurement": None})
-            print(f"  {lab} at {bpm:g} BPM (chorus {ch}): no modulation")
+            rows.append({"sound": lab, "tempo_bpm": bpm, "FILTER": knobs[0], "RESONANCE": knobs[1],
+                         "chorus": ch, "measurement": None})
+            print(f"  {tag} (chorus {ch}): no modulation")
             continue
         parts = []
         for kind, fr, prom, swing in found:
             name, dev, harm = describe_rate(fr, bpm, clfo)
             if kind == "audio-rate component":
                 harm = ""
-            rows.append({"sound": lab, "tempo_bpm": bpm, "chorus": ch,
+            rows.append({"sound": lab, "tempo_bpm": bpm, "FILTER": knobs[0], "RESONANCE": knobs[1], "chorus": ch,
                          "chorus_lfo_hz": "/".join(f"{c:.4f}" for c in clfo), "measurement": kind,
                          "rate_hz": r(fr, 3), "prominence": r(prom, 1), "swing": r(swing, 3),
                          "nearest_note_value": name, "deviation_pct": r(dev, 1), "chorus_harmonic": harm})
             parts.append(f"{kind} {fr:.3f} Hz ({name} {dev:+.1f} %{', chorus ' + harm if harm else ''})")
-        print(f"  {lab} at {bpm:g} BPM (chorus {ch}, LFO {'/'.join(f'{c:.3f}' for c in clfo)} Hz): " + "; ".join(parts))
+        print(f"  {tag} (chorus {ch}, LFO {'/'.join(f'{c:.3f}' for c in clfo)} Hz): " + "; ".join(parts))
     # each modulation looked for at the other tempo
     for row in rows:
         if not row.get("rate_hz") or row["chorus_harmonic"] or row["measurement"] in ("stepped brightness",):
             continue
-        lab, bpm = row["sound"], row["tempo_bpm"]
-        for (lab2, bpm2), (tk2, end2, series2, clfo2) in takes_by.items():
-            if lab2 != lab or bpm2 == bpm:
+        lab, bpm, knobs = row["sound"], row["tempo_bpm"], (row["FILTER"], row["RESONANCE"])
+        for (lab2, bpm2, knobs2), (tk2, end2, series2, clfo2) in takes_by.items():
+            if lab2 != lab or bpm2 == bpm or knobs2 != knobs:
                 continue
             synced, fixed = row["rate_hz"] * bpm2 / bpm, row["rate_hz"]
             if row["measurement"] == "audio-rate component":
@@ -1004,7 +1036,12 @@ def longnote(root: Path, out: Path) -> list[dict]:
             row[f"at_{bpm2:g}_bpm"] = verdict
             print(f"  {lab} {row['measurement']} {row['rate_hz']:.3f} Hz at {bpm:g} BPM, looked for at {bpm2:g} BPM: "
                   f"{detail} -> {verdict}")
-    write(out / "longnote.csv", rows)
+    for row in jit:
+        print(f"  {row['sound']} at {row['tempo_bpm']:g} BPM, FILTER {row['FILTER']} RESONANCE {row['RESONANCE']}: "
+              f"brightness jitter 0.5-5 Hz {row['together_0.5_5_oct']:.3f} together / {row['apart_0.5_5_oct']:.3f} apart, "
+              f"5-45 Hz {row['together_5_45_oct']:.3f} / {row['apart_5_45_oct']:.3f} octave rms")
+    write(out / f"{folder}.csv", rows)
+    write(out / f"{folder}_jitter.csv", jit)
     return rows
 
 
@@ -1154,14 +1191,15 @@ def main() -> None:
     for name, fn in (("tempo150", tempo), ("velocity", velocity), ("poly", poly), ("sweep", sweep),
                      ("keysync", keysync), ("filters", filters), ("longtail", longtail),
                      ("longnote", run_longnote), ("keysync2", lambda a, b: keysync(a, b, "keysync2", known)),
-                     ("chord", chord)):
+                     ("chord", chord), ("verylong", lambda a, b: longnote(a, b, "verylong")),
+                     ("longnote2", lambda a, b: longnote(a, b, "longnote2"))):
         if (root / name).is_dir():
             found = True
             print(f"== {name}")
             fn(root, out)
     if not found:
         sys.exit(f"no experiment folder (tempo150, velocity, poly, sweep, keysync, filters, "
-                 f"longtail, longnote, keysync2, chord) in {root}")
+                 f"longtail, longnote, keysync2, chord, verylong, longnote2) in {root}")
 
 
 if __name__ == "__main__":
