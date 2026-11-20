@@ -40,6 +40,8 @@ longnote   one 20 s A2 note: every modulation's exact rate, whether it is a
            note value or a harmonic of the chorus LFO, and, for a sound
            recorded at two tempos, whether it follows the tempo
 keysync2   as keysync, eight notes, sounds at 60, 70 and 100 BPM
+keysync3   as keysync, eight notes of 8 s, measured from 1 s after each
+           note-on and fitted from 2 s: slow LFOs past their envelope
 chord      four notes entering at 0, 0.25, 0.51 and 1.05 s: whether the
            voices share one LFO phase or each starts its own at its note-on
 
@@ -465,17 +467,17 @@ def nearest_value(rate: float, bpm: float):
     return name, 100 * (rate * beats * 60 / bpm - 1)
 
 
-def note_phases(series, f):
+def note_phases(series, f, fit_from: float = FIT_FROM):
     """Per-note amplitude, phase against the note-on and against the take."""
     out = []
     for e, tau, sv in series:
-        sel = tau >= FIT_FROM
+        sel = tau >= fit_from
         amp, theta = phase_fit(tau[sel], sv[sel], f)
         out.append((e, amp, theta, theta + 2 * np.pi * f * e["on"]))
     return out
 
 
-def free_rate(series, f_med: float, bpm: float):
+def free_rate(series, f_med: float, bpm: float, fit_from: float = FIT_FROM):
     """Rate at which the notes' phases against the take agree best, weighted
     by amplitude: first among the note values within 0.45 Hz of the per-note
     estimate (which sits up to 0.35 Hz off when the true rate lies in a band
@@ -483,7 +485,7 @@ def free_rate(series, f_med: float, bpm: float):
     0.06 Hz of it. The search stays narrow because the onsets, about 4.6 s
     apart, make rates 0.22 Hz apart look alike."""
     def score(f):
-        ph = note_phases(series, f)
+        ph = note_phases(series, f, fit_from)
         return (abs(np.mean([a * np.exp(1j * big) for _, a, _, big in ph])),
                 concentration([big for _, _, _, big in ph]))
     grid = [bpm / 60 / b for b, _ in REPORT_VALUES if abs(bpm / 60 / b - f_med) <= 0.45]
@@ -534,7 +536,8 @@ def audio_phases(tk: A.Take, notes, f: float):
     return rel, big
 
 
-def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
+def keysync(root: Path, out: Path, folder: str = "keysync", known=None,
+            track_from: float = 0.1, fit_from: float = FIT_FROM) -> None:
     """Seven A2 notes per sound. Each modulation (pitch, brightness, even-
     harmonic share; the stepped brightness of a sample and hold when none is
     periodic) is found on most notes at one rate, then its phase is measured
@@ -552,7 +555,10 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
         lab = sound_of(tk)
         bpm = float(tk.meta["prm"].get("TEMPO", 10000)) / 100
         notes = sorted(tk.events.values(), key=lambda e: e["on"])
-        tracks = [A.track(tk, e["on"] + 0.1, e["off"] - 0.05, A.A2) for e in notes]
+        # track_from: where each note's measurement starts; later than the
+        # note-on, an envelope's spike stays out of the series' detrending
+        tracks = [A.track(tk, e["on"] + track_from, e["off"] - 0.05, A.A2) for e in notes]
+        t0 = track_from + 0.04   # centre of the first 80 ms frame
         ch, exclude = chorus_exclusion(root, tk, notes)
         chorus_lfo = ([A.CHORUS_MOD[ch] / 2] if ch in A.CHORUS_MOD else
                       [v / 2 for v in A.CHORUS_MOD.values()] if ch == "on" else [])
@@ -570,10 +576,10 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
                 elif kind == "stepped brightness":
                     series = []
                     for e in notes:
-                        t, d = jumps(tk, e["on"] + 0.1, e["off"] - 0.05)
+                        t, d = jumps(tk, e["on"] + track_from, e["off"] - 0.05)
                         if d is not None:
                             series.append((e, t - e["on"], d - d.mean()))
-                    ph = note_phases(series, f)
+                    ph = note_phases(series, f, fit_from)
                     rel, big = [th for _, _, th, _ in ph], [b for _, _, _, b in ph]
                 else:
                     col = {"vibrato": 0, "filter LFO": 1, "PWM": 2}[kind]
@@ -581,8 +587,8 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
                     for e, tr in zip(notes, tracks):
                         sv = A._clean((tr[:, 0, col] + tr[:, 1, col]) / 2) if tr is not None else None
                         if sv is not None:
-                            series.append((e, 0.14 + 0.01 * np.arange(len(sv)), sv))
-                    ph = note_phases(series, f)
+                            series.append((e, t0 + 0.01 * np.arange(len(sv)), sv))
+                    ph = note_phases(series, f, fit_from)
                     rel, big = [th for _, _, th, _ in ph], [b for _, _, _, b in ph]
                 for e, th, b in zip(notes, rel, big):
                     rows.append({"sound": lab, "tempo_bpm": bpm, "measurement": kind, "rate_hz": r(f, 3),
@@ -615,10 +621,10 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
                 for e, tr in zip(notes, tracks):
                     sv = A._clean((tr[:, 0, col] + tr[:, 1, col]) / 2) if tr is not None else None
                     if sv is not None:
-                        series.append((e, 0.14 + 0.01 * np.arange(len(sv)), sv))
+                        series.append((e, t0 + 0.01 * np.arange(len(sv)), sv))
                 cand[kind] = (rate, float(np.median([res[1] for res in found])), series)
         if not cand:
-            per = [jumps(tk, e["on"] + 0.1, e["off"] - 0.05) for e in notes]
+            per = [jumps(tk, e["on"] + track_from, e["off"] - 0.05) for e in notes]
             per = [(e, t, d) for e, (t, d) in zip(notes, per) if d is not None]
             if len(per) > len(notes) // 2:
                 rate, prom = averaged_peak_rate([d for _, _, d in per], exclude, fmax=9.5)
@@ -635,19 +641,19 @@ def keysync(root: Path, out: Path, folder: str = "keysync", known=None) -> None:
             if k and kind != "stepped brightness":
                 verdicts.append(f"{kind} {f_med:.2f} Hz: harmonic {k[0]} of the chorus LFO, skipped")
                 continue
-            ph = note_phases(series, f_med)
+            ph = note_phases(series, f_med, fit_from)
             r_note = concentration([th for _, _, th, _ in ph])
             if r_note >= 0.8 and r_note - concentration([big for _, _, _, big in ph]) >= 0.3:
                 verdict, f = "restarts with each note", f_med
             else:
-                f = free_rate(series, f_med, bpm)
-                ph = note_phases(series, f)
+                f = free_rate(series, f_med, bpm, fit_from)
+                ph = note_phases(series, f, fit_from)
                 if concentration([big for _, _, _, big in ph]) >= 0.9 and \
                         concentration([big for _, _, _, big in ph]) - concentration([th for _, _, th, _ in ph]) >= 0.3:
                     verdict = "free-running"
                 else:
                     verdict, f = "unclear", f_med
-            ph = note_phases(series, f)
+            ph = note_phases(series, f, fit_from)
             r_note = concentration([th for _, _, th, _ in ph])
             r_take = concentration([big for _, _, _, big in ph])
             name, dev = nearest_value(f, bpm)
@@ -1259,14 +1265,15 @@ def main() -> None:
                      ("keysync", keysync), ("filters", filters), ("longtail", longtail),
                      ("longnote", run_longnote), ("keysync2", lambda a, b: keysync(a, b, "keysync2", known)),
                      ("chord", chord), ("verylong", lambda a, b: longnote(a, b, "verylong")),
-                     ("longnote2", lambda a, b: longnote(a, b, "longnote2"))):
+                     ("longnote2", lambda a, b: longnote(a, b, "longnote2")),
+                     ("keysync3", lambda a, b: keysync(a, b, "keysync3", known, track_from=1.0, fit_from=2.0))):
         if (root / name).is_dir():
             found = True
             print(f"== {name}")
             fn(root, out)
     if not found:
         sys.exit(f"no experiment folder (tempo150, velocity, poly, sweep, keysync, filters, "
-                 f"longtail, longnote, keysync2, chord, verylong, longnote2) in {root}")
+                 f"longtail, longnote, keysync2, chord, verylong, longnote2, keysync3) in {root}")
 
 
 if __name__ == "__main__":

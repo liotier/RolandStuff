@@ -78,6 +78,11 @@ STIMULI = {
     "longnote": [("long_A2", 45, None, 0.00, 20.00)],
     # one 90 s A2 note: modulations down to about 0.05 Hz
     "verylong": [("long_A2", 45, None, 0.00, 90.00)],
+    # eight A2 notes of 8 s: slow LFOs measured from 2 s after each note-on,
+    # past any envelope, over 3 cycles at 0.556 Hz; onsets spread for every
+    # note value at 60 and 100 BPM (concentration at most 0.40)
+    "retrig8long": [(f"retrig_{i}", 45, None, on, 8.0)
+                    for i, on in enumerate([0.0, 9.46, 19.73, 29.91, 39.34, 48.7, 59.05, 68.88])],
     # eight A2 notes of 3.5 s: as retrig, onsets spread for every note value
     # at 60, 70 and 100 BPM (concentration at most 0.43)
     "retrig8": [(f"retrig_{i}", 45, None, on, 3.5)
@@ -89,7 +94,7 @@ STIMULI = {
 }
 TAIL = {"full": 2.00, "short": 2.35, "envelope": 6.0, "velocity": 1.0, "poly": 2.5,
         "retrig": 1.5, "filter": 1.5, "longtail": 30.0, "longnote": 2.0, "retrig8": 1.5,
-        "chord": 2.0, "verylong": 2.0}  # after the last note-off
+        "chord": 2.0, "verylong": 2.0, "retrig8long": 1.5}  # after the last note-off
 PRE_ROLL = 0.8   # s between starting arecord and the first note (noise floor)
 NATIVE_RATE = 44100  # the J-6's only USB audio rate (S32_LE, stereo) on a v1.02 unit
 MARGIN = 0.5
@@ -312,7 +317,7 @@ def main() -> None:
                     "notes), retrig (33 s, seven A2 notes), filter (11 s, A1 to A4), "
                     "longtail (36 s, one note and 30 s of release), longnote (22 s), "
                     "retrig8 (41 s, eight A2 notes), chord (11 s, four staggered notes), "
-                    "verylong (92 s)")
+                    "verylong (92 s), retrig8long (78 s, eight 8 s notes)")
     ap.add_argument("--prm-dir", help="the RESTORE folder generated for this pass, "
                     "to store each pattern's settings with its take")
     ap.add_argument("--card", default="J6", help="ALSA card id for audio (default J6)")

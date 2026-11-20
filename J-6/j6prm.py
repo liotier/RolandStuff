@@ -257,8 +257,16 @@ def final_plan() -> dict[int, dict]:
             7: {"sound": 36, "BPM": 100.0}}
 
 
+def finalfinal_plan() -> dict[int, dict]:
+    """Built-in plan 'finalfinal': 5-8 at 100 and 60 BPM (patterns 1-2), whose
+    slow LFO's phase readings conflict; 8-1 (a free-running LFO at the same
+    0.556 Hz) and 5-6 (a restarting one) at 100 BPM as controls (3-4)."""
+    return {1: {"sound": 39, "BPM": 100.0}, 2: {"sound": 39, "BPM": 60.0},
+            3: {"sound": 56, "BPM": 100.0}, 4: {"sound": 37, "BPM": 100.0}}
+
+
 BUILTIN_PLANS = {"sweep": sweep_plan, "filters": filters_plan, "keysync": keysync_plan,
-                 "closing": closing_plan, "final": final_plan}
+                 "closing": closing_plan, "final": final_plan, "finalfinal": finalfinal_plan}
 
 
 def read_plan(path) -> dict[int, dict]:
@@ -367,7 +375,7 @@ def main() -> None:
     p.add_argument("--attack", type=knob_value, default="default", help="0-255 or 'default'")
     p.add_argument("--bpm", type=float, help="pattern tempo, default: as in the template")
     p.add_argument("--level", type=int, help="pattern level, default: as in the template")
-    p.add_argument("--plan", help="'sweep', 'filters', 'keysync', 'closing' or 'final' (built in), or a CSV giving each pattern its sound "
+    p.add_argument("--plan", help="'sweep', 'filters', 'keysync', 'closing', 'final' or 'finalfinal' (built in), or a CSV giving each pattern its sound "
                    "and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM)")
     p.add_argument("--omit", help="experimental: leave these knob lines out of the files, "
                    "e.g. FILTER,RESONANCE, to see what the J-6 fills in on restore")
