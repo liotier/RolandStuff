@@ -9,9 +9,9 @@ extremes). Each take is aligned on its own audio: the first note's onset is
 found by fitting the stimulus's note pattern to the take's onset curve,
 because the recorder's start-up time varies by tens of milliseconds.
 
-Checked against the reference spreadsheet: chorus agrees on 56 of 56
-measurable sounds, glide on 60 of 60, vibrato on 49 of 56, filter LFO on 41 of
-56. Known limits: octave and sub-oscillator are ambiguous for mixed waveforms;
+Checked against the reference spreadsheet: chorus agrees on 64 of 64 sounds,
+glide on 60 of 60 measurable, vibrato on 56 of 64, filter LFO on 53 of 64,
+LFO delay (yes / no) on 34 of 37 with an LFO measured. Known limits: octave and sub-oscillator are ambiguous for mixed waveforms;
 sounds whose note decays within 1.5 s get no modulation measurement;
 detections on a harmonic of the chorus LFO are flagged in lfo_flags.
 
@@ -56,6 +56,7 @@ A2, A4 = 110.0, 440.0
 # reference spreadsheet marks chorus I and II. The chorus's own sweep shows in
 # per-channel measurements at these rates and at half of them.
 CHORUS_MOD = {"I": 1.09, "II": 1.76}
+PASSES = ("default", "open", "env000", "env255")
 
 
 def label(i: int) -> str:
@@ -331,23 +332,31 @@ def lfo(per, col, exclude=(), hop=0.01, fmin=0.3, fmax=18.0):
     return None
 
 
-def modulation_delay(series, rate, hop=0.01):
-    """Time at which the running swing reaches half its final value."""
+def modulation_delay(series, rate, hop=0.01, t0=0.0):
+    """LFO delay: time at which the modulation's depth envelope (Hilbert
+    magnitude of the series band-limited to rate +- rate/2) reaches half its
+    value later in the note (median over 50-85 % of the series). The
+    series is zero-padded before the FFT filter, so the end of the note cannot
+    wrap around into its start. Under one LFO cycle a delay cannot be told
+    apart from the filter's own rise, so it is reported as 0. A strong onset
+    transient in the series (a filter envelope's sweep, a pitch blip) fills
+    the band at the start and hides a delay. t0 is the time of the series'
+    first frame after the note-on."""
+    from scipy.signal import hilbert
     s = np.asarray(series, float)
     if not rate or rate != rate or len(s) < 200:
         return float("nan")
-    win = max(int(1.5 / rate / hop), 10)
-    sw = []
-    for i in range(0, len(s) - win):
-        w = s[i:i + win]
-        w = w[~np.isnan(w)]
-        sw.append(np.percentile(w, 95) - np.percentile(w, 5) if len(w) > win // 2 else np.nan)
-    sw = np.array(sw)
-    if np.all(np.isnan(sw)):
+    n = len(s)
+    padded = np.concatenate([s, np.zeros(n)])
+    env = np.abs(hilbert(band(padded, rate, hop, width=max(rate / 2, 0.3))))[:n]
+    final = np.median(env[n // 2: int(n * 0.85)])
+    if final <= 0:
         return float("nan")
-    final = np.nanmedian(sw[-max(len(sw) // 4, 1):])
-    idx = np.flatnonzero(sw >= 0.5 * final)
-    return float(idx[0] * hop + win * hop / 2) if len(idx) else float("nan")
+    idx = np.flatnonzero(env >= 0.5 * final)
+    if not len(idx):
+        return float("nan")
+    t = idx[0] * hop
+    return t + t0 if t > 1.0 / rate else 0.0
 
 
 def envelope(take: Take, gate: float, tail: float) -> dict:
@@ -610,7 +619,8 @@ def analyse_sound(takes: dict, idx: int) -> dict:
             row[f"{name}_note"] = note_value(res[0], bpm) if res else None
             row[f"{name}_hz"] = r(res[0], 2) if res else None
             row[f"{name}_swing"] = r(res[2], 2) if res else None
-            row[f"{name}_delay_s"] = r(modulation_delay(band(res[3], res[0]), res[0]), 2) if res else None
+            # the track starts 0.1 s after the note-on, and its frames are 0.08 s long
+            row[f"{name}_delay_s"] = r(modulation_delay(res[3], res[0], t0=0.14), 2) if res else None
     else:
         row["lfo_flags"] = "note too short to measure modulation"
     if amp:
@@ -642,10 +652,10 @@ def main() -> None:
         if wanted is not None and idx not in wanted:
             continue
         takes = {}
-        for pass_dir in sorted(p for p in root.iterdir() if p.is_dir()):
-            js = pass_dir / f"{pass_dir.name}_P{idx + 1:02d}_{label(idx)}.json"
+        for name in PASSES:   # the experiment folders are for j6experiments.py
+            js = root / name / f"{name}_P{idx + 1:02d}_{label(idx)}.json"
             if js.exists():
-                takes[pass_dir.name] = Take(js)
+                takes[name] = Take(js)
         if takes:
             rows.append(analyse_sound(takes, idx))
             print(f"{label(idx)} analysed", file=sys.stderr)

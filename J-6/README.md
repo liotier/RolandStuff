@@ -16,6 +16,7 @@ it. Two sources remain:
 | `j6capture.py` | select each pattern by Program Change, play test notes, record the USB audio |
 | `j6passes.sh` | generate, restore and record the remaining passes in one run |
 | `j6analyze.py` | measure every sound from the recorded takes |
+| `j6experiments.py` | analyse the experiment passes: tempo, velocity, polyphony, knob sweeps |
 | `j6compare.py` | set the measurements beside the reference spreadsheet in a workbook |
 
 Both need only Python 3.8 or later. `j6capture.py` runs on Linux and needs
@@ -64,8 +65,9 @@ to 128 for every sound, including in patterns that held another value, so
 
 ## Procedure
 
-Everything runs from one experiment folder holding the four scripts
-(`j6prm.py`, `j6capture.py`, `j6passes.sh`, `j6analyze.py`), your backups
+Everything runs from one experiment folder holding the scripts
+(`j6prm.py`, `j6capture.py`, `j6passes.sh`, `j6analyze.py`,
+`j6experiments.py`), your backups
 `Factory_backup/` and `Harvest_backup/` (with `defaults.csv`), and the
 `passes/` and `captures/` folders the scripts create. For example:
 
@@ -75,6 +77,10 @@ bash j6passes.sh tempo150 sweep
 
 ```bash
 python3 j6analyze.py captures -o measurements.csv
+```
+
+```bash
+python3 j6experiments.py captures -o results
 ```
 
 Keep the backup of your own patterns: every restore below overwrites all 64.
@@ -243,13 +249,18 @@ Findings that hold across the 64 sounds:
   at 255 every pluck sustains, at 0 releases fall to about 10 ms.
 - Chorus I and II are distinct: the stereo difference signal pulses at
   1.09 Hz for I and 1.76 Hz for II; chorus off is exact mono.
-- Velocity changes the level by 19-20 dB between 40 and 127 on every sound,
-  about level proportional to velocity squared.
+- Velocity changes the level by 19-20 dB between 40 and 127 on every sound:
+  level is proportional to velocity squared (exponent 2.00 from 8 to 127, see
+  Experiments). It does not change the brightness.
 - Glide is polyphonic: each voice glides from the last pitch it played.
 - The LFOs follow the pattern tempo: all 43 LFO detections fall on a note
   value at 100 BPM, from a dotted half (0.56 Hz) to a dotted thirty-second
-  (8.89 Hz). The chorus is free-running. A pass at another tempo would
-  confirm it.
+  (8.89 Hz), and at 150 BPM they run 1.5 times faster (see Experiments). Their
+  delays do not follow the tempo. The chorus is free-running.
+- LFO delay (time until the modulation reaches half its later depth) agrees
+  with the reference spreadsheet's Delay column on 34 of the 37 sounds where
+  an LFO was measured. Delays shorter than one LFO cycle read 0, and an onset
+  transient in the same measurement can hide one (7-7).
 - [CHORD] is on after every power-on, and then each MIDI note plays a chord.
   With [CHORD] unlit, MIDI notes play single notes at their MIDI pitch; the
   tuning measured within 0.3 cent of 440 Hz.
@@ -265,8 +276,9 @@ envelope levels and times only.
 
 ## Experiments
 
-Two further pattern sets, each recorded with `bash j6passes.sh tempo150 sweep`
-(one restore each):
+Two further pattern sets, recorded with `bash j6passes.sh tempo150 sweep`
+(one restore each) and analysed with `python3 j6experiments.py captures -o
+results`, which writes one CSV per experiment and prints a summary:
 
 | Set | Patterns | Recordings | Question |
 |---|---|---|---|
@@ -279,6 +291,55 @@ and knob values (columns pattern, sound, FILTER, RESONANCE, ENV, ATTACK, BPM). `
 `envelope` (6 s note, 8 s tail, staccato, 6 s tail), `velocity` (A3 at 16
 velocities, 8 to 127) and `poly` (six notes entering 0.5 s apart, released
 together).
+
+Results from the same unit (`results/tempo.csv`, `velocity.csv`, `poly.csv`,
+`sweep_*.csv`):
+
+- **Tempo.** Of the LFOs detected at both 100 and 150 BPM (24), the rates
+  scale by a median 1.502 against a tempo ratio of 1.500, and 22 keep their
+  note value; the two others are on 8-4, whose slow modulations (0.3 and
+  0.5 Hz) sit at the detection limit. The seven LFO delays measurable at both
+  tempos stay the same (median ratio 0.97, against 0.67 if they followed the
+  tempo): rates are tempo-synced, delays are in seconds. Attack, sustain,
+  release and glide differ by a median of 2 ms, 0.2 dB, 5 ms and 0 ms; the
+  larger differences fall on sounds whose LFO, running faster, moves these
+  measurements. Chorus is unchanged.
+- **Sample and hold.** 8-7, which the reference spreadsheet describes as a
+  free-running S&H LFO to the filter, shows random brightness steps at
+  4.44 Hz at 100 BPM and 6.67 Hz at 150 BPM: a dotted sixteenth at both
+  tempos, so the S&H clock follows the tempo too. Whether its phase restarts
+  with each note was not tested. Its random level changes also make its
+  attack and release measurements arbitrary.
+- **Velocity.** On 1-3, 2-7, 4-4 and 6-8, level follows velocity squared:
+  exponent 1.99-2.02, 48 dB from velocity 8 to 127. Brightness shows no trend
+  (the scatter on 2-7 and 4-4 is their chorus and LFO caught at different
+  phases).
+- **Polyphony.** Four voices. With six held notes C3 E3 G3 B3 D4 F4 entering
+  0.5 s apart, E3 falls silent when D4 enters and G3 when F4 enters, while
+  C3, the oldest and lowest, keeps sounding, on all three sounds tested. The
+  voice allocation steals the oldest note except the lowest (measured on each
+  note's fundamental).
+- **FILTER** (6-8, whose RESONANCE 255 makes the filter ring). The resonant
+  peak moves one octave per 14.4 steps: about 30 Hz at 85, 67 Hz at 102,
+  817 Hz at 153, 1.75 kHz at 170 (A2), then flattens towards 13 kHz at 255
+  (A2) and about 16 kHz (A4). Below 85 the filter is closed. It follows the
+  keyboard fully: A4 puts the peak two octaves above A2 (1.00 octave per
+  octave). The FILTER value is not an absolute frequency for every sound:
+  2-7 at FILTER 69 is far brighter than 6-8 at 68, so each sound has its own
+  cutoff offset (and possibly its own key tracking).
+- **RESONANCE** (2-7, FILTER 69). Against RESONANCE 0, the resonant peak
+  rises to about +15 dB (at 660 Hz for A2, near 1.3 kHz for A4, to the nearest
+  harmonic) and saturates above 170-204; the fundamental drops 5-6 dB, the
+  passband loss of a ladder-type filter. No self-oscillation on this sound.
+- **ATTACK** (2-7). Rise to -3 dB stays under 20 ms up to 68, then doubles
+  every 31 steps: 32 ms at 85, 141 ms at 136, 571 ms at 204, 1.7 s at 255
+  (2.8 s to the peak). Sustain and release do not change.
+- **ENV** (1-3). 0-119 is a pluck without sustain whose decay to -20 dB
+  lengthens from 35 to 215 ms. From 136 a sustain appears (-18.7 dB) and rises
+  to -0.7 dB at 255, while the release to -20 dB lengthens from 0.3 s to
+  5.6 s at 221, beyond the 7.5 s measured at 238-255; a staccato note's
+  release matches the long note's. Brightness follows the same envelope: at
+  ENV 255 it holds, at 136 it falls after the onset.
 
 ## Troubleshooting
 

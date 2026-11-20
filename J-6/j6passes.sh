@@ -9,7 +9,7 @@
 #                                     # tempo150 (defaults at 150 BPM, plus velocity
 #                                     # and polyphony tests), sweep (knob sweeps)
 #
-# Run it from the experiment folder, which holds the four scripts,
+# Run it from the experiment folder, which holds the scripts,
 # Factory_backup/ and Harvest_backup/; it creates passes/ and captures/ there.
 # J6_MOUNT is where the desktop mounts the J-6 drive.
 set -euo pipefail

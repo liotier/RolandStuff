@@ -68,7 +68,6 @@ cols = [  # (header, source, key, number format, width, comment)
     ("DCO LFO (sheet)", "sheet", "dco_lfo", None, 9, None),
     ("Vibrato (Hz)", "meas", "vibrato_hz", "0.00", 9, "Rate of an in-phase pitch modulation of the A2 note (open-filter pass)."),
     ("Vibrato p95-p5 (cents)", "meas", "vibrato_swing", "0", 10, "Peak-to-peak pitch swing of the band-limited modulation."),
-    ("Vibrato delay (s)", "meas", "vibrato_delay_s", "0.00", 9, "Time until the vibrato reaches half its final depth."),
     ("Vibrato note at 100 BPM", "meas", "vibrato_note", None, 9, "Note value whose repetition rate at the patterns' 100 BPM matches the measured rate (1/8. = dotted eighth, 1/4T = quarter triplet). Every LFO detected matches one: the J-6's LFOs follow the tempo."),
     ("Vibrato agree", "f_vib", None, None, 9, None),
     ("VCF LFO (sheet)", "sheet", "vcf_lfo", None, 9, None),
@@ -79,6 +78,9 @@ cols = [  # (header, source, key, number format, width, comment)
     ("PWM (sheet)", "sheet", "pwm", None, 8, None),
     ("PWM LFO (Hz)", "meas", "pwm_hz", "0.00", 9, "Rate of an in-phase modulation of the even harmonics' share of energy, open-filter pass."),
     ("PWM note at 100 BPM", "meas", "pwm_note", None, 9, None),
+    ("Delay (sheet)", "sheet", "delay", None, 8, None),
+    ("LFO delay (s)", "lfodelay", None, "0.00", 9, "Longest of the vibrato, filter LFO and PWM delays: time from the note-on until the modulation reaches half the depth it has later in the note. Delays shorter than one LFO cycle read 0; a strong onset transient in the same measurement (a filter envelope sweep) can hide a delay. Empty when no LFO was detected."),
+    ("Delay agree", "f_delay", None, None, 9, None),
     ("LFO flags", "meas", "lfo_flags", None, 28, "The chorus LFO (about 0.545 Hz for I, 0.88 Hz for II) is free-running and shows at its harmonics. Detections on one of them that match no note value were dropped; those listed here match a note value and are kept."),
     ("Pulse (sheet)", "sheet", "pulse", None, 8, None),
     ("Saw (sheet)", "sheet", "saw", None, 7, None),
@@ -130,6 +132,14 @@ for r_i, lab in enumerate(order, 2):
             if key == "lfo_flags" and v == "note too short to measure modulation": v = None
             cell.value = num(v)
         elif kind == "harv": cell.value = num(hv[key])
+        elif kind == "lfodelay":
+            ds = [num(m.get(f"{k}_delay_s")) for k in ("vibrato", "filter_lfo", "pwm")]
+            ds = [d for d in ds if isinstance(d, (int, float))]
+            cell.value = max(ds) if ds else None
+        elif kind == "f_delay":
+            ok = f"{L('Modulation measurable')}{r_i}"
+            sd, md = f"{L('Delay (sheet)')}{r_i}", f"{L('LFO delay (s)')}{r_i}"
+            cell.value = f'=IF(OR({ok}="no",{md}=""),"n/a",IF(({sd}="Y")=({md}>0),"yes","no"))'
         elif kind == "f_chorus":
             sc, mc = f"{L('Chorus (sheet)')}{r_i}", f"{L('Chorus (measured)')}{r_i}"
             cell.value = f'=IF({mc}="","n/a",IF(OR({mc}={sc},AND({mc}="on",{sc}<>"Off")),"yes","no"))'
@@ -154,7 +164,8 @@ hdr = ["Attribute", "Agree", "Disagree", "Not measurable", "Agreement"]
 for c, h in enumerate(hdr, 1):
     cell = summary.cell(row=4, column=c, value=h); cell.font, cell.fill = BOLD, HEAD
 for i, (name, col) in enumerate((("Chorus I / II / Off", "Chorus agree"), ("Glide yes / no", "Glide agree"),
-                                 ("Vibrato (DCO LFO) yes / no", "Vibrato agree"), ("Filter LFO yes / no", "Filter LFO agree")), 5):
+                                 ("Vibrato (DCO LFO) yes / no", "Vibrato agree"), ("Filter LFO yes / no", "Filter LFO agree"),
+                                 ("LFO delay yes / no", "Delay agree")), 5):
     rng = f"Comparison!${L(col)}$2:${L(col)}${last}"
     summary.cell(row=i, column=1, value=name)
     summary.cell(row=i, column=2, value=f'=COUNTIF({rng},"yes")')
@@ -163,7 +174,7 @@ for i, (name, col) in enumerate((("Chorus I / II / Off", "Chorus agree"), ("Glid
     summary.cell(row=i, column=5, value=f'=IF(B{i}+C{i}=0,"",B{i}/(B{i}+C{i}))').number_format = "0%"
     for c in range(1, 6): summary.cell(row=i, column=c).font = FONT
 notes = [
-    "Agreement is counted only where both sources say something comparable. 'Not measurable' marks plucks whose long note decays before modulation can be measured.",
+    "Agreement is counted only where both sources say something comparable. 'Not measurable' marks plucks whose long note decays before modulation can be measured, and for the delay, sounds where no LFO was detected.",
     "Continuous attributes (attack, sustain, release, cutoff, resonance, sub level, noise) are listed side by side on the Comparison sheet without a score: the spreadsheet's words (Low, Mid, Fast...) have no defined boundaries.",
     "Spreadsheet columns are shaded grey on the Comparison sheet; hover over a header for the measurement's definition.",
 ]
@@ -215,9 +226,19 @@ lines = [
     ("The J-6 ignores All Sound Off. The env255 pass waited 10 s between patterns; previous sounds were still audible at -77 to -95 dBFS in 24 takes, negligible against notes at -25 to -45 dBFS.", False),
     ("Octave and sub-oscillator are ambiguous for mixed waveforms: a square plus a saw at one pitch has the same harmonic magnitudes as a sub-oscillator plus a saw an octave up.", False),
     ("LFO detection needs about 1.5 s of sound: plucks are measured on the env255 pass. Rates below 0.3 Hz are not detected. The analysis resolves about 0.2 Hz.", False),
-    ("All 43 LFO detections match a note value at 100 BPM (from dotted half to dotted thirty-second): strong evidence that the LFOs follow the pattern tempo. A pass at another tempo would confirm it.", False),
+    ("The LFOs follow the pattern tempo: all 43 LFO detections match a note value at 100 BPM (from dotted half to dotted thirty-second), and in a pass at 150 BPM the 24 LFOs detected at both tempos ran 1.50 times faster (median ratio 1.502) and kept their note value in 22 cases. The LFO delays did not follow: in the seven cases measurable at both tempos they stayed the same (median ratio 0.97, against 0.67 if they followed the tempo), so delays are set in seconds.", False),
+    ("LFO delay: time from the note-on until the modulation reaches half the depth it has later in the note. Delays shorter than one LFO cycle read 0; an onset transient in the same measurement hides a delay (sound 7-7, filter LFO).", False),
     ("Glide is polyphonic: each voice glides from the last pitch it played, so only the settle time is comparable between sounds.", False),
     ("[ENVELOPE] acts on decay, sustain and release together; at 255 every pluck sustains (see the ENV 0 / ENV 255 sustain columns).", False),
+    ("", False),
+    ("Further experiments (results/*.csv in the repository)", True),
+    ("Sample and hold: 8-7's random filter steps come at 4.44 Hz at 100 BPM and 6.67 Hz at 150 BPM, a dotted sixteenth at both: the S&H clock follows the tempo.", False),
+    ("Velocity: level proportional to velocity squared (exponent 2.00, 8 to 127, four sounds); no effect on brightness.", False),
+    ("Polyphony: four voices. Of six held notes entering in turn, the 2nd and 3rd are dropped when the 5th and 6th enter; the lowest note keeps sounding.", False),
+    ("FILTER (sound 6-8, RESONANCE 255): the resonant peak moves one octave per 14.4 steps below 2 kHz, from about 30 Hz at 85 (A2), flattening towards 13-16 kHz; it follows the keyboard fully (1.00 octave per octave).", False),
+    ("RESONANCE (sound 2-7): at 255 the resonant peak stands about 15 dB above its level at 0 and the fundamental drops 5-6 dB.", False),
+    ("ATTACK (sound 2-7): rise to -3 dB under 20 ms up to 68, then doubling every 31 steps to 1.7 s at 255; release unaffected.", False),
+    ("ENV (sound 1-3): 0-119 is a pluck whose decay to -20 dB lengthens from 35 to 215 ms; from 136 a sustain appears (-19 dB) and rises to -0.7 dB at 255 while the release to -20 dB lengthens from 0.3 s at 136 to 5.6 s at 221, beyond the 7.5 s measured at 238 and 255.", False),
     ("", False),
     ("Sources", True),
     ("Reference spreadsheet (grey columns of the Comparison sheet, quoted for comparison): Nick Standing (JabunAudio), 'Roland J-6 Preset Sounds Settings Ver. 1.0', patch sheet published with the video 'Roland AIRA Compact J-6 Comprehensive Preset Sounds Patch Sheet! (Free download or donation)', https://www.youtube.com/watch?v=z6hoNwWadR8.", False),
