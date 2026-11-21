@@ -1,4 +1,4 @@
-# The Roland J-6's 64 preset sounds, measured
+# Forensic dissection of the Roland J-6’s 64 presets: measuring the settings Roland doesn’t show
 
 This report documents the 64 preset sounds of the Roland J-6 chord
 synthesizer (AIRA Compact, system program 1.02) by measurement. It draws on
